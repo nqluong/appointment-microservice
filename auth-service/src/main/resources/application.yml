@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: "jdbc:${DB_URL_AUTH}"
+    username: ${DB_USERNAME_AUTH}
+    password: ${DB_PASSWORD_AUTH}
+    driver-class-name: "org.postgresql.Driver"
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  signer-key: "${SECRET_KEY_JWT}"
+  expiration: 3600 # in seconds
+  refresh:
+    expiration: 36000
+
+server:
+  port: 0
+  username-admin: ${ADMIN_USER_NAME}
+  password-admin: ${ADMIN_PASSWORD}
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+app:
+  name: Hệ thống Đặt lịch khám chữa bệnh
+  password-reset:
+    token-expiry-minutes: 30
+  frontend:
+    reset-password-url: http://localhost:3000/reset-password
+  upload:
+    dir: uploads/avatars
+    max-size: 5242880 # 5MB

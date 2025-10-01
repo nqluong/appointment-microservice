@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: notifications-service
+  datasource:
+    url: "jdbc:${DB_URL_NOTIFICATIONS}"
+    username: ${DB_USERNAME_NOTIFICATIONS}
+    password: ${DB_PASSWORD_NOTIFICATIONS}
+    driver-class-name: "org.postgresql.Driver"
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: nguyenluong052004@gmail.com
+    password: "${PASS_MAIL}"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+server:
+  port: 0
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

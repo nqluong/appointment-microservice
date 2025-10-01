@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+              - Path=/api/auth/**
+
+            - id: roles-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/roles/**
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: INFO
+    org.springframework.cloud.gateway: TRACE
+
+server:
+  port: 8080
