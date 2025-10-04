@@ -1,14 +1,20 @@
-//package org.project.mapper;
-//
-//import org.mapstruct.Mapper;
-//import org.mapstruct.Mapping;
-//import org.mapstruct.Named;
-//import org.project.appointment_project.appoinment.dto.response.AppointmentResponse;
-//import org.project.appointment_project.appoinment.model.Appointment;
-//import org.project.appointment_project.user.model.User;
-//
-//@Mapper(componentModel = "spring")
-//public interface AppointmentMapper {
+package org.project.mapper;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.project.dto.response.AppointmentDtoResponse;
+import org.project.dto.response.AppointmentResponse;
+import org.project.model.Appointment;
+
+
+@Mapper(componentModel = "spring")
+public interface AppointmentMapper {
+    @Mapping(source = "id", target = "appointmentId")
+    @Mapping(source = "doctorUserId", target = "doctorId")
+    @Mapping(source = "patientUserId", target = "patientId")
+    AppointmentDtoResponse toDto(Appointment appointment);
+
 //    @Mapping(source = "id", target = "appointmentId")
 //    @Mapping(source = "doctor.id", target = "doctorId")
 //    @Mapping(source = "doctor", target = "doctorName", qualifiedByName = "buildFullName")
@@ -45,4 +51,4 @@
 //        }
 //        return doctor.getMedicalProfile().getSpecialty().getName();
 //    }
-//}
+}

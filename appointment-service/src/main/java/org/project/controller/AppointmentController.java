@@ -1,38 +1,79 @@
-//package org.project.controller;
-//
-//import jakarta.validation.Valid;
-//import jakarta.validation.constraints.Max;
-//import jakarta.validation.constraints.Min;
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.project.appointment_project.appoinment.dto.request.CancelAppointmentRequest;
-//import org.project.appointment_project.appoinment.dto.request.CreateAppointmentRequest;
-//import org.project.appointment_project.appoinment.dto.request.UpdateAppointmentStatusRequest;
-//import org.project.appointment_project.appoinment.dto.response.AppointmentResponse;
-//import org.project.appointment_project.appoinment.enums.Status;
-//import org.project.appointment_project.appoinment.service.AppointmentService;
-//import org.project.appointment_project.common.dto.PageResponse;
-//import org.project.appointment_project.common.security.annotation.RequireOwnershipOrAdmin;
-//import org.project.appointment_project.medicalrecord.dto.request.CreateMedicalRecordRequest;
-//import org.project.appointment_project.medicalrecord.dto.request.UpdateMedicalRecordRequest;
-//import org.project.appointment_project.medicalrecord.dto.response.MedicalRecordResponse;
-//import org.springframework.data.domain.PageRequest;
-//import org.springframework.data.domain.Pageable;
-//import org.springframework.data.domain.Sort;
-//import org.springframework.http.HttpStatus;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.security.access.prepost.PreAuthorize;
-//import org.springframework.web.bind.annotation.*;
-//
-//import java.util.UUID;
-//
-//@RestController
-//@RequiredArgsConstructor
-//@RequestMapping("/api/appointments")
-//@Slf4j
-//public class AppointmentController {
-//    private final AppointmentService appointmentService;
-//
+package org.project.controller;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.project.dto.PageResponse;
+import org.project.dto.request.CreateAppointmentRequest;
+import org.project.dto.response.AppointmentDtoResponse;
+import org.project.dto.response.AppointmentResponse;
+import org.project.enums.Status;
+import org.project.service.AppointmentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/appointments")
+@Slf4j
+public class AppointmentController {
+    private final AppointmentService appointmentService;
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<PageResponse<AppointmentDtoResponse>> getUserAppointmentsByStatus(
+            @PathVariable UUID userId,
+            @RequestParam List<Status> statuses,
+            @RequestParam(defaultValue = "0") @Min(0) Integer page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @RequestParam(defaultValue = "appointmentDate") String sortBy) {
+
+                Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<AppointmentDtoResponse> appointments = appointmentService
+                .getUserAppointmentsByStatus(userId, statuses, pageable);
+
+        return ResponseEntity.ok(appointments);
+    }
+
+    @GetMapping("/doctor/{doctorId}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
+    public ResponseEntity<PageResponse<AppointmentDtoResponse>> getDoctorAppointmentsByStatus(
+            @PathVariable UUID doctorId,
+            @RequestParam List<Status> statuses,
+            @RequestParam(defaultValue = "0") @Min(0) Integer page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @RequestParam(defaultValue = "appointmentDate") String sortBy) {
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        PageResponse<AppointmentDtoResponse> appointments = appointmentService
+                .getDoctorAppointmentsByStatus(doctorId, statuses, pageable);
+
+        return ResponseEntity.ok(appointments);
+    }
+
 //    @PostMapping
 //    public ResponseEntity<AppointmentResponse> createAppointment(@Valid @RequestBody CreateAppointmentRequest request) {
 //        AppointmentResponse appointmentResponse = appointmentService.createAppointment(request);
@@ -41,7 +82,7 @@
 //    }
 //
 //    @GetMapping
-//    @RequireOwnershipOrAdmin
+//    //@RequireOwnershipOrAdmin
 //    public ResponseEntity<PageResponse<AppointmentResponse>> getAppointments(
 //            @RequestParam(required = false) UUID userId,
 //            @RequestParam(required = false) Status status,
@@ -137,4 +178,4 @@
 //        MedicalRecordResponse response = appointmentService.updateMedicalRecordForAppointment(appointmentId, request);
 //        return ResponseEntity.ok(response);
 //    }
-//}
+}

@@ -47,10 +47,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     long countPendingAppointmentsByPatient(@Param("patientId") UUID patientId);
 
     //Tìm tất cả lịch hẹn của bệnh nhân theo trạng thái
-    List<Appointment> findByPatientIdAndStatusIn(UUID patientId, List<Status> statuses);
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE (a.patientUserId = :userId or a.doctorUserId = :userId)
+        AND a.status IN :statuses
+    """)
+    Page<Appointment> findByUserIdAndStatusIn(UUID userId, List<Status> statuses, Pageable pageable);
 
     //Tìm tất cả lịch hẹn của bác sĩ theo trạng thái
-    List<Appointment> findByDoctorIdAndStatusIn(UUID doctorId, List<Status> statuses);
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE a.doctorUserId = :doctorId
+        AND a.status IN :statuses
+    """)
+    Page<Appointment> findByDoctorIdAndStatusIn(UUID doctorId, List<Status> statuses, Pageable pageable);
 
 
 //    @Query("""

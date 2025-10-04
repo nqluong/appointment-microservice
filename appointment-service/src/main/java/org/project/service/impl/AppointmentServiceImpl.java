@@ -26,10 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 //import org.project.appointment_project.user.model.User;
 //import org.project.appointment_project.user.repository.UserRepository;
 import org.project.dto.PageResponse;
+import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
+import org.project.mapper.AppointmentMapper;
 import org.project.mapper.PageMapper;
 import org.project.model.Appointment;
 import org.project.repository.AppointmentRepository;
@@ -37,8 +39,8 @@ import org.project.service.AppointmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -48,13 +50,37 @@ import java.util.UUID;
 public class AppointmentServiceImpl implements AppointmentService {
 
     AppointmentRepository appointmentRepository;
-//    DoctorAvailableSlotRepository slotRepository;
+    //    DoctorAvailableSlotRepository slotRepository;
 //    UserRepository userRepository;
 //    AppointmentValidationService validationService;
     PageMapper pageMapper;
-//    AppointmentMapper appointmentMapper;
+    AppointmentMapper appointmentMapper;
 //    SlotStatusService slotStatusService;
 //    MedicalRecordService medicalRecordService;
+
+    @Override
+    public PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
+            UUID patientId,
+            List<Status> statuses,
+            Pageable pageable) {
+
+        Page<Appointment> appointments = appointmentRepository
+                .findByUserIdAndStatusIn(patientId, statuses, pageable);
+
+        return pageMapper.toPageResponse(appointments, appointmentMapper::toDto);
+    }
+
+    @Override
+    public PageResponse<AppointmentDtoResponse> getDoctorAppointmentsByStatus(
+            UUID doctorId,
+            List<Status> statuses,
+            Pageable pageable) {
+
+        Page<Appointment> appointments = appointmentRepository
+                .findByDoctorIdAndStatusIn(doctorId, statuses, pageable);
+
+        return pageMapper.toPageResponse(appointments,appointmentMapper::toDto);
+    }
 
     //Tạo lịch hẹn mới vả xử lý transaction, lock
 //    @Transactional
@@ -102,13 +128,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 //    @Override
 //    public PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable) {
 //        try {
-////            if (userId != null) {
-////                validateUserExists(userId);
-////            }
+//            if (userId != null) {
+//                validateUserExists(userId);
+//            }
 //
-////            Page<Appointment> appointmentsPage = getAppointmentsPage(userId, status, pageable);
+//            Page<Appointment> appointmentsPage = getAppointmentsPage(userId, status, pageable);
 //
-//          // return pageMapper.toPageResponse(appointmentsPage, appointmentMapper::toResponse);
+//           return pageMapper.toPageResponse(appointmentsPage, appointmentMapper::toResponse);
 //
 //        } catch (CustomException e) {
 //            log.error("Failed to get appointments: {} - {}", e.getErrorCode().getCode(), e.getMessage());
@@ -361,7 +387,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 //                .notes(request.getNotes())
 //                .build();
 //    }
-
     private Appointment getAppointmentWithLock(UUID appointmentId) {
         return appointmentRepository.findByIdWithLock(appointmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
