@@ -1,11 +1,14 @@
-//package org.project.repository;
-//
-//
-//
-//import java.util.Optional;
-//import java.util.UUID;
-//
-//public interface ProfileJdbcRepository {
+package org.project.repository;
+
+
+
+import org.project.dto.response.CompleteProfileProjection;
+import org.project.model.UserProfile;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface ProfileJdbcRepository {
 //
 //    /**
 //     * Cập nhật profile thông qua request (đã được filter bởi strategy)
@@ -15,12 +18,12 @@
 //     */
 //    boolean updateProfile(UUID userId, ProfileUpdateRequest request);
 //
-//    /**
-//     * Lấy complete profile information
-//     * @param userId ID của user
-//     * @return User với đầy đủ profile information
-//     */
-//    Optional<User> getCompleteUserProfile(UUID userId);
+    /**
+     * Lấy complete profile information
+     * @param userId ID của user
+     * @return User với đầy đủ profile information
+     */
+    Optional<CompleteProfileProjection> getCompleteUserProfile(UUID userId);
 //
 //    /**
 //     * Tạo mới UserProfile bằng JDBC
@@ -65,4 +68,4 @@
 //     * @return true nếu tồn tại
 //     */
 //    boolean existsMedicalProfile(UUID userId);
-//}
+}

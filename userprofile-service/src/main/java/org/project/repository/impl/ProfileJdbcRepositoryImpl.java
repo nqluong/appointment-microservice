@@ -1,38 +1,40 @@
-//package org.project.repository.impl;
-//
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.project.appointment_project.user.dto.request.ProfileUpdateRequest;
-//import org.project.appointment_project.user.dto.request.UpdateMedicalProfileRequest;
-//import org.project.appointment_project.user.dto.request.UpdateUserProfileRequest;
-//import org.project.appointment_project.user.enums.Gender;
-//import org.project.appointment_project.user.model.MedicalProfile;
-//import org.project.appointment_project.user.model.User;
-//import org.project.appointment_project.user.model.UserProfile;
-//import org.project.appointment_project.user.repository.ProfileJdbcRepository;
-//import org.springframework.dao.EmptyResultDataAccessException;
-//import org.springframework.jdbc.core.RowMapper;
-//import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-//import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-//import org.springframework.stereotype.Repository;
-//import org.springframework.transaction.annotation.Transactional;
-//import org.springframework.util.StringUtils;
-//
-//import java.sql.ResultSet;
-//import java.sql.SQLException;
-//import java.time.LocalDateTime;
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Optional;
-//import java.util.UUID;
-//
-//@Repository
-//@RequiredArgsConstructor
-//@Slf4j
-//public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
-//
-//    private final NamedParameterJdbcTemplate namedJdbcTemplate;
-//
+package org.project.repository.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.catalina.User;
+import org.project.dto.response.CompleteProfileProjection;
+import org.project.dto.response.CompleteProfileResponse;
+import org.project.enums.Gender;
+import org.project.model.MedicalProfile;
+import org.project.model.UserProfile;
+import org.project.repository.ProfileJdbcRepository;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+@RequiredArgsConstructor
+@Slf4j
+public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
+
+    private final NamedParameterJdbcTemplate namedJdbcTemplate;
+    //
 //    private static final String SELECT_USER_PROFILE_SQL = """
 //        SELECT id, user_id, first_name, last_name, date_of_birth, gender,
 //               address, phone, avatar_url, created_at, updated_at
@@ -47,26 +49,44 @@
 //        FROM medical_profiles WHERE user_id = :userId
 //        """;
 //
-//    private static final String SELECT_COMPLETE_USER_PROFILE_SQL = """
-//        SELECT u.id as user_id, u.username, u.email, u.is_active, u.is_email_verified,
-//               u.created_at as user_created_at, u.updated_at as user_updated_at,
-//
-//               up.id as profile_id, up.first_name, up.last_name, up.date_of_birth,
-//               up.gender, up.address, up.phone, up.avatar_url,
-//               up.created_at as profile_created_at, up.updated_at as profile_updated_at,
-//
-//               mp.id as medical_id, mp.blood_type, mp.allergies, mp.medical_history,
-//               mp.emergency_contact_name, mp.emergency_contact_phone, mp.license_number,
-//               mp.qualification, mp.years_of_experience, mp.consultation_fee, mp.bio,
-//               mp.is_doctor_approved, mp.specialty_id,
-//               mp.created_at as medical_created_at, mp.updated_at as medical_updated_at
-//
-//        FROM users u
-//        LEFT JOIN user_profiles up ON u.id = up.user_id
-//        LEFT JOIN medical_profiles mp ON u.id = mp.user_id
-//        WHERE u.id = :userId
-//        """;
-//
+    private static final String SELECT_COMPLETE_USER_PROFILE_SQL = """
+            SELECT
+                up.id AS user_profile_id,
+                up.user_id,
+                up.first_name,
+                up.last_name,
+                up.date_of_birth,
+                up.gender,
+                up.address,
+                up.phone,
+                up.avatar_url,
+                up.updated_at AS user_profile_updated_at,
+                
+                mp.id AS medical_profile_id,
+                mp.blood_type,
+                mp.allergies,
+                mp.medical_history,
+                mp.emergency_contact_name,
+                mp.emergency_contact_phone,
+                mp.license_number,
+                mp.qualification,
+                mp.years_of_experience,
+                mp.consultation_fee,
+                mp.bio,
+                mp.is_doctor_approved,
+                mp.updated_at AS medical_profile_updated_at,
+                s.name AS specialty_name
+            
+            FROM user_profiles up
+            LEFT JOIN medical_profiles mp
+                   ON up.user_id = mp.user_id
+            LEFT JOIN specialties s
+                   ON mp.specialty_id = s.id
+            WHERE up.user_id = :userId;
+            
+        """;
+
+    //
 //    private static final String INSERT_USER_PROFILE_SQL = """
 //        INSERT INTO user_profiles (id, user_id, first_name, last_name, date_of_birth,
 //                                  gender, address, phone, avatar_url, created_at, updated_at)
@@ -152,17 +172,20 @@
 //    }
 //
 //    //Lấy thông tin của người dùng qua userId
-//    @Override
-//    public Optional<User> getCompleteUserProfile(UUID userId) {
-//        try {
-//            MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
-//            User user = namedJdbcTemplate.queryForObject(SELECT_COMPLETE_USER_PROFILE_SQL, params, new CompleteUserRowMapper());
-//            return Optional.ofNullable(user);
-//        } catch (EmptyResultDataAccessException e) {
-//            return Optional.empty();
-//        }
-//    }
-//
+    @Override
+    public Optional<CompleteProfileProjection> getCompleteUserProfile(UUID userId) {
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
+            CompleteProfileProjection userProfile = namedJdbcTemplate.queryForObject(SELECT_COMPLETE_USER_PROFILE_SQL,
+                    params,
+                    new CompleteProfileRowMapper());
+            return Optional.ofNullable(userProfile);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    //
 //    @Override
 //    public UUID createUserProfile(UUID userId, UpdateUserProfileRequest request) {
 //        UUID profileId = UUID.randomUUID();
@@ -488,61 +511,60 @@
 //
 //
 //    //RowMapper cho  User profile từ câu query
-//    private static class CompleteUserRowMapper implements RowMapper<User> {
-//        @Override
-//        public User mapRow(ResultSet rs, int rowNum) throws SQLException {
-//            User user = User.builder()
-//                    .id(UUID.fromString(rs.getString("user_id")))
-//                    .username(rs.getString("username"))
-//                    .email(rs.getString("email"))
-//                    .isActive(rs.getBoolean("is_active"))
-//                    .isEmailVerified(rs.getBoolean("is_email_verified"))
-//                    .createdAt(rs.getTimestamp("user_created_at").toLocalDateTime())
-//                    .updatedAt(rs.getTimestamp("user_updated_at").toLocalDateTime())
-//                    .build();
-//
-//            // Map UserProfile nếu tồn tại
-//            if (rs.getString("profile_id") != null) {
-//                UserProfile userProfile = UserProfile.builder()
-//                        .id(UUID.fromString(rs.getString("profile_id")))
-//                        .firstName(rs.getString("first_name"))
-//                        .lastName(rs.getString("last_name"))
-//                        .dateOfBirth(rs.getDate("date_of_birth") != null ?
-//                                rs.getDate("date_of_birth").toLocalDate() : null)
-//                        .gender(rs.getString("gender") != null ?
-//                                Gender.valueOf(rs.getString("gender")) : null)
-//                        .address(rs.getString("address"))
-//                        .phone(rs.getString("phone"))
-//                        .avatarUrl(rs.getString("avatar_url"))
-//                        .createdAt(rs.getTimestamp("profile_created_at").toLocalDateTime())
-//                        .updatedAt(rs.getTimestamp("profile_updated_at").toLocalDateTime())
-//                        .user(user)
-//                        .build();
-//                user.setUserProfile(userProfile);
-//            }
-//
-//            // Map MedicalProfile nếu tồn tại
-//            if (rs.getString("medical_id") != null) {
-//                MedicalProfile medicalProfile = MedicalProfile.builder()
-//                        .id(UUID.fromString(rs.getString("medical_id")))
-//                        .bloodType(rs.getString("blood_type"))
-//                        .allergies(rs.getString("allergies"))
-//                        .medicalHistory(rs.getString("medical_history"))
-//                        .emergencyContactName(rs.getString("emergency_contact_name"))
-//                        .emergencyContactPhone(rs.getString("emergency_contact_phone"))
-//                        .licenseNumber(rs.getString("license_number"))
-//                        .qualification(rs.getString("qualification"))
-//                        .yearsOfExperience(rs.getObject("years_of_experience", Integer.class))
-//                        .consultationFee(rs.getBigDecimal("consultation_fee"))
-//                        .bio(rs.getString("bio"))
-//                        .isDoctorApproved(rs.getBoolean("is_doctor_approved"))
-//                        .createdAt(rs.getTimestamp("medical_created_at").toLocalDateTime())
-//                        .updatedAt(rs.getTimestamp("medical_updated_at").toLocalDateTime())
-//                        .user(user)
-//                        .build();
-//                user.setMedicalProfile(medicalProfile);
-//            }
-//            return user;
-//        }
-//    }
-//}
+    private static class CompleteProfileRowMapper implements RowMapper<CompleteProfileProjection> {
+        @Override
+        public CompleteProfileProjection mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return CompleteProfileProjection.builder()
+                    // UserProfile fields
+                    .userProfileId(getUUID(rs, "user_profile_id"))
+                    .userId(getUUID(rs, "user_id"))
+                    .firstName(rs.getString("first_name"))
+                    .lastName(rs.getString("last_name"))
+                    .dateOfBirth(getLocalDate(rs, "date_of_birth"))
+                    .gender(getEnum(rs, "gender", Gender.class))
+                    .address(rs.getString("address"))
+                    .phone(rs.getString("phone"))
+                    .avatarUrl(rs.getString("avatar_url"))
+                    .userProfileUpdatedAt(getLocalDateTime(rs, "user_profile_updated_at"))
+
+                    // MedicalProfile fields (có thể null)
+                    .medicalProfileId(getUUID(rs, "medical_profile_id"))
+                    .bloodType(rs.getString("blood_type"))
+                    .allergies(rs.getString("allergies"))
+                    .medicalHistory(rs.getString("medical_history"))
+                    .emergencyContactName(rs.getString("emergency_contact_name"))
+                    .emergencyContactPhone(rs.getString("emergency_contact_phone"))
+                    .licenseNumber(rs.getString("license_number"))
+                    .qualification(rs.getString("qualification"))
+                    .yearsOfExperience(rs.getObject("years_of_experience", Integer.class))
+                    .consultationFee(rs.getBigDecimal("consultation_fee"))
+                    .bio(rs.getString("bio"))
+                    .isDoctorApproved(rs.getBoolean("is_doctor_approved"))
+                    .medicalProfileUpdatedAt(getLocalDateTime(rs, "medical_profile_updated_at"))
+
+                    // Specialty
+                    .specialtyName(rs.getString("specialty_name"))
+                    .build();
+        }
+
+        private UUID getUUID(ResultSet rs, String columnName) throws SQLException {
+            String value = rs.getString(columnName);
+            return value != null ? UUID.fromString(value) : null;
+        }
+
+        private LocalDate getLocalDate(ResultSet rs, String columnName) throws SQLException {
+            java.sql.Date date = rs.getDate(columnName);
+            return date != null ? date.toLocalDate() : null;
+        }
+
+        private LocalDateTime getLocalDateTime(ResultSet rs, String columnName) throws SQLException {
+            java.sql.Timestamp timestamp = rs.getTimestamp(columnName);
+            return timestamp != null ? timestamp.toLocalDateTime() : null;
+        }
+
+        private <T extends Enum<T>> T getEnum(ResultSet rs, String columnName, Class<T> enumType) throws SQLException {
+            String value = rs.getString(columnName);
+            return value != null ? Enum.valueOf(enumType, value) : null;
+        }
+    }
+}

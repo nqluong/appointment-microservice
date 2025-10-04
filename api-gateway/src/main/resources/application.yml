@@ -15,6 +15,21 @@ spring:
               uri: lb://auth-service
               predicates:
                 - Path=/api/roles/**
+
+            - id: users-service
+              uri: lb://userprofile-service
+              predicates:
+                - Path=/api/users/**
+
+            - id: absence-service
+              uri: lb://scheduling-service
+              predicates:
+                - Path=/api/doctor-absences/**
+
+            - id: scheduling-service
+              uri: lb://scheduling-service
+              predicates:
+                - Path=/api/schedules/**
 eureka:
   client:
     service-url:

@@ -12,11 +12,11 @@ import java.util.UUID;
 
 @Repository
 public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, UUID> {
-    List<DoctorSchedule> findByDoctorIdAndIsActiveTrue(UUID doctorId);
+   // List<DoctorSchedule> findByDoctorIdAndIsActiveTrue(UUID doctorId);
 
-    List<DoctorSchedule> findByDoctorId(UUID doctorId);
+    //List<DoctorSchedule> findByDoctorId(UUID doctorId);
 
-    boolean existsByDoctorId(UUID doctorId);
+    //boolean existsByDoctorId(UUID doctorId);
 
     @Query("SELECT ds FROM DoctorSchedule ds WHERE ds.doctorUserId = :doctorId AND ds.isActive = true ORDER BY ds.dayOfWeek")
     List<DoctorSchedule> findActiveDoctorSchedulesByDoctorId(@Param("doctorId") UUID doctorId);
