@@ -33,7 +33,9 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/register",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
-            "/api/auth/verify"
+            "/api/auth/verify",
+            "/api/payments/vnpay/callback",
+            "/api/payments/vnpay/return"
     );
 
     @Override
@@ -45,7 +47,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
-        log.info("AuthenticationFilter");
+
         //Get token from authorization header
         String token = extractToken(exchange.getRequest());
         if (token == null) {

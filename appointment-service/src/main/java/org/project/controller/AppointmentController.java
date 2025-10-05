@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.common.security.util.SecurityUtils;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.response.AppointmentDtoResponse;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @Slf4j
 public class AppointmentController {
     private final AppointmentService appointmentService;
+    private final SecurityUtils securityUtils;
 
     @GetMapping("/users/{userId}")
     public ResponseEntity<PageResponse<AppointmentDtoResponse>> getUserAppointmentsByStatus(
@@ -41,6 +43,7 @@ public class AppointmentController {
             @RequestParam(defaultValue = "DESC") String sortDirection,
             @RequestParam(defaultValue = "appointmentDate") String sortBy) {
 
+        securityUtils.validateUserAccess(userId);
                 Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;

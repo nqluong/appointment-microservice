@@ -148,6 +148,7 @@ public enum ErrorCode {
     REFUND_AMOUNT_TOO_LARGE(9024, "Số tiền hoàn lại quá lớn", HttpStatus.BAD_REQUEST),
     PAYMENT_ALREADY_FULLY_REFUNDED(9025, "Thanh toán đã được hoàn lại toàn bộ", HttpStatus.BAD_REQUEST),
     APPOINTMENT_DATE_PASSED(9026, "Không thể hoàn tiền cho các cuộc hẹn đã qua", HttpStatus.BAD_REQUEST),
+    FEATURE_NOT_AVAILABLE(9027, "Tính năng này hiện không khả dụng", HttpStatus.SERVICE_UNAVAILABLE),
 
     // Lỗi VNPay
     VNPAY_INVALID_RESPONSE(1101, "Phản hồi từ VNPay không hợp lệ", HttpStatus.BAD_REQUEST),
