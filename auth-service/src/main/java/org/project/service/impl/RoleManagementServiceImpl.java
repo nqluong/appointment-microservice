@@ -31,6 +31,9 @@ public class RoleManagementServiceImpl implements RoleManagementService {
 
     @Override
     public List<String> getUserRoles(UUID userId) {
+        if(!userRepository.existsById(userId)) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
         return userRoleRepositoryJdbc.getUserRoleNames(userId);
     }
 

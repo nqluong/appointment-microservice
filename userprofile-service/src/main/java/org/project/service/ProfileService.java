@@ -11,5 +11,5 @@ public interface ProfileService {
 
     CompleteProfileResponse getCompleteProfile(UUID userId);
 
-//    CompleteProfileResponse updateProfile(UUID userId, ProfileUpdateRequest request);
+    CompleteProfileResponse updateProfile(UUID userId, ProfileUpdateRequest request);
 }

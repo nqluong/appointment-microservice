@@ -7,6 +7,7 @@ import org.project.common.security.handler.CustomAccessDeniedHandler;
 import org.project.common.security.handler.CustomAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,6 +21,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
+    private final String[] GET_PUBLIC = {
+            "/api/doctors/public/**",
+            "/api/schedules/public/**",
+            "/api/specialties/public/**"
+    };
 
     private final ObjectMapper objectMapper;
 
@@ -52,6 +58,7 @@ public class SecurityConfig {
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/profiles/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, GET_PUBLIC).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter,

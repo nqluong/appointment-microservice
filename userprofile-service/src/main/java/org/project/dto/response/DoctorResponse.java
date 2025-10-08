@@ -14,13 +14,14 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DoctorResponse {
-    UUID id;
+    UUID userId;
     String fullName;
-    String avatarUrl;
-    String qualification;
-    BigDecimal consultationFee;
-    Integer yearsOfExperience;
     String gender;
     String phone;
+    String avatarUrl;
+
+    String qualification;
+    Integer yearsOfExperience;
+    BigDecimal consultationFee;
     String specialtyName;
 }

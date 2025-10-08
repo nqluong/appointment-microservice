@@ -12,15 +12,15 @@ import java.util.UUID;
 
 public interface SpecialtyService {
 
-//    SpecialtyResponse createSpecialty(SpecialtyRequest request);
-//
-//    SpecialtyResponse getSpecialtyById(UUID id);
-//
-//    List<SpecialtyResponse> getAllActiveSpecialties();
-//
-//    PageResponse<SpecialtyResponse> getSpecialtiesWithFilters(String name, Boolean isActive, Pageable pageable);
-//
-//    SpecialtyResponse updateSpecialty(UUID id, SpecialtyUpdate updateDto);
-//
-//    void deleteSpecialty(UUID id);
+    SpecialtyResponse createSpecialty(SpecialtyRequest request);
+
+    SpecialtyResponse getSpecialtyById(UUID id);
+
+    List<SpecialtyResponse> getAllActiveSpecialties();
+
+    PageResponse<SpecialtyResponse> getSpecialtiesWithFilters(String name, Boolean isActive, Pageable pageable);
+
+    SpecialtyResponse updateSpecialty(UUID id, SpecialtyUpdate updateDto);
+
+    void deleteSpecialty(UUID id);
 }

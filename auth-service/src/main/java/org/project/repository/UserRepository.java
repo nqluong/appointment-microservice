@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +19,14 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     boolean existsByEmail(String email);
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
+
+    @Query("SELECT DISTINCT u.id FROM User u " +
+            "JOIN u.userRoles ur " +
+            "JOIN ur.role r " +
+            "WHERE r.name = :roleName " +
+            "AND u.isActive = true " +
+            "AND ur.isActive = true")
+    List<UUID> findUserIdsByRoleName(@Param("roleName") String roleName);
 
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.isActive = true")
     Optional<User> findByEmailAndDeletedAtIsNull(@Param("email") String email);

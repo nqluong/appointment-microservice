@@ -19,7 +19,7 @@ spring:
             - id: users-service
               uri: lb://userprofile-service
               predicates:
-                - Path=/api/users/**
+                - Path=/api/users/**, /api/doctors/**, /api/patients/**, /api/specialties/**
 
             - id: absence-service
               uri: lb://scheduling-service

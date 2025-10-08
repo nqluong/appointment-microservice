@@ -25,67 +25,61 @@ import java.util.UUID;
 public class SpecialtyController {
     private final SpecialtyService specialtyService;
 
-//    @PostMapping
-//    public ResponseEntity<SpecialtyResponse> createSpecialty(
-//            @Valid @RequestBody SpecialtyRequest requestDto) {
-//        log.info("Request to create specialty: {}", requestDto.getName());
-//
-//        SpecialtyResponse createdSpecialty = specialtyService.createSpecialty(requestDto);
-//        return ResponseEntity.status(HttpStatus.CREATED).body(createdSpecialty);
-//    }
-//
-//    @GetMapping("/{id}")
-//    public ResponseEntity<SpecialtyResponse> getSpecialtyById(
-//            @PathVariable UUID id) {
-//        log.info("Request to get specialty by id: {}", id);
-//
-//        SpecialtyResponse specialty = specialtyService.getSpecialtyById(id);
-//        return ResponseEntity.ok(specialty);
-//    }
-//
-//    @GetMapping("/active")
-//    public ResponseEntity<List<SpecialtyResponse>> getAllActiveSpecialties() {
-//        log.info("Request to get all active specialties");
-//
-//        List<SpecialtyResponse> specialties = specialtyService.getAllActiveSpecialties();
-//        return ResponseEntity.ok(specialties);
-//    }
-//
-//    @GetMapping
-//    public ResponseEntity<PageResponse<SpecialtyResponse>> getSpecialtiesWithFilters(
-//            @RequestParam(required = false) String name,
-//            @RequestParam(required = false) Boolean isActive,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size,
-//            @RequestParam(defaultValue = "createdAt") String sortBy,
-//            @RequestParam(defaultValue = "desc") String sortDir) {
-//
-//        Sort sort = sortDir.equalsIgnoreCase("desc")
-//                ? Sort.by(sortBy).descending()
-//                : Sort.by(sortBy).ascending();
-//
-//        Pageable pageable = PageRequest.of(page, size, sort);
-//        PageResponse<SpecialtyResponse> response = specialtyService.getSpecialtiesWithFilters(name, isActive, pageable);
-//
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @PutMapping("/{id}")
-//
-//    public ResponseEntity<SpecialtyResponse> updateSpecialty(
-//            @PathVariable UUID id,
-//            @Valid @RequestBody SpecialtyUpdate updateDto) {
-//
-//        SpecialtyResponse updatedSpecialty = specialtyService.updateSpecialty(id, updateDto);
-//        return ResponseEntity.ok(updatedSpecialty);
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteSpecialty(
-//          @PathVariable UUID id) {
-//        log.info("Request to delete specialty with id: {}", id);
-//
-//        specialtyService.deleteSpecialty(id);
-//        return ResponseEntity.noContent().build();
-//    }
+    @PostMapping
+    public ResponseEntity<SpecialtyResponse> createSpecialty(
+            @Valid @RequestBody SpecialtyRequest requestDto) {
+
+        SpecialtyResponse createdSpecialty = specialtyService.createSpecialty(requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdSpecialty);
+    }
+
+    @GetMapping("/public/{id}")
+    public ResponseEntity<SpecialtyResponse> getSpecialtyById(
+            @PathVariable UUID id) {
+
+        SpecialtyResponse specialty = specialtyService.getSpecialtyById(id);
+        return ResponseEntity.ok(specialty);
+    }
+
+    @GetMapping("/public/active")
+    public ResponseEntity<List<SpecialtyResponse>> getAllActiveSpecialties() {
+        List<SpecialtyResponse> specialties = specialtyService.getAllActiveSpecialties();
+        return ResponseEntity.ok(specialties);
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<PageResponse<SpecialtyResponse>> getSpecialtiesWithFilters(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        PageResponse<SpecialtyResponse> response = specialtyService.getSpecialtiesWithFilters(name, isActive, pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SpecialtyResponse> updateSpecialty(
+            @PathVariable UUID id,
+            @Valid @RequestBody SpecialtyUpdate updateDto) {
+
+        SpecialtyResponse updatedSpecialty = specialtyService.updateSpecialty(id, updateDto);
+        return ResponseEntity.ok(updatedSpecialty);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSpecialty(
+          @PathVariable UUID id) {
+
+        specialtyService.deleteSpecialty(id);
+        return ResponseEntity.noContent().build();
+    }
 }

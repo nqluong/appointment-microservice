@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface DoctorService {
 
-//    PageResponse<DoctorResponse> getAllDoctors(Pageable pageable);
-//
-//    PageResponse<DoctorResponse> getDoctorsWithFilters(String specialtyName, Pageable pageable);
+    PageResponse<DoctorResponse> getAllDoctors(Pageable pageable);
+
+    PageResponse<DoctorResponse> getDoctorsWithFilters(String specialtyName, Pageable pageable);
 }

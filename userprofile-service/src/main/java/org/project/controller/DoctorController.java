@@ -21,40 +21,40 @@ import org.springframework.web.bind.annotation.RestController;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DoctorController {
 
-//    DoctorService doctorService;
-//
-//    @GetMapping
-//    public ResponseEntity<PageResponse<DoctorResponse>> getAllDoctors(
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size,
-//            @RequestParam(defaultValue = "createdAt") String sortBy,
-//            @RequestParam(defaultValue = "desc") String sortDir) {
-//
-//        Sort sort = sortDir.equalsIgnoreCase("desc")
-//                ? Sort.by(sortBy).descending()
-//                : Sort.by(sortBy).ascending();
-//
-//        Pageable pageable = PageRequest.of(page, size, sort);
-//        PageResponse<DoctorResponse> response = doctorService.getAllDoctors(pageable);
-//
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @GetMapping("/search")
-//    public ResponseEntity<PageResponse<DoctorResponse>> getDoctorsWithFilters(
-//            @RequestParam(required = false) String specialtyName,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size,
-//            @RequestParam(defaultValue = "createdAt") String sortBy,
-//            @RequestParam(defaultValue = "desc") String sortDir) {
-//
-//        Sort sort = sortDir.equalsIgnoreCase("desc")
-//                ? Sort.by(sortBy).descending()
-//                : Sort.by(sortBy).ascending();
-//
-//        Pageable pageable = PageRequest.of(page, size, sort);
-//        PageResponse<DoctorResponse> response = doctorService.getDoctorsWithFilters(specialtyName, pageable);
-//
-//        return ResponseEntity.ok(response);
-//    }
+    DoctorService doctorService;
+
+    @GetMapping("/public")
+    public ResponseEntity<PageResponse<DoctorResponse>> getAllDoctors(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        PageResponse<DoctorResponse> response = doctorService.getAllDoctors(pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/public/search")
+    public ResponseEntity<PageResponse<DoctorResponse>> getDoctorsWithFilters(
+            @RequestParam(required = false) String specialtyName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        PageResponse<DoctorResponse> response = doctorService.getDoctorsWithFilters(specialtyName, pageable);
+
+        return ResponseEntity.ok(response);
+    }
 }

@@ -1,31 +1,33 @@
-//package org.project.mapper;
-//
-//import org.mapstruct.Mapper;
-//import org.mapstruct.Mapping;
-//import org.mapstruct.NullValuePropertyMappingStrategy;
-//import org.mapstruct.ReportingPolicy;
-//import org.project.dto.response.DoctorResponse;
-//
-//import java.util.List;
-//
-//@Mapper(
-//        componentModel = "spring",
-//        unmappedTargetPolicy = ReportingPolicy.IGNORE,
-//        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
-//)
-//public interface DoctorMapper {
-//    @Mapping(target = "id", source = "id")
-//    @Mapping(target = "fullName", expression = "java(buildFullName(user))")
-//    @Mapping(target = "avatarUrl", source = "userProfile.avatarUrl")
-//    @Mapping(target = "qualification", source = "medicalProfile.qualification")
-//    @Mapping(target = "consultationFee", source = "medicalProfile.consultationFee")
-//    @Mapping(target = "yearsOfExperience", source = "medicalProfile.yearsOfExperience")
-//    @Mapping(target = "gender", expression = "java(getGenderString(user))")
-//    @Mapping(target = "phone", source = "userProfile.phone")
-//    @Mapping(target = "specialtyName", source = "medicalProfile.specialty.name")
-//    DoctorResponse toResponse(User user);
-//
-//    List<DoctorResponse> toResponseList(List<User> users);
+package org.project.mapper;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
+import org.project.dto.response.DoctorResponse;
+import org.project.repository.DoctorProjection;
+
+import java.util.List;
+
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public interface DoctorMapper {
+
+
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "fullName", source = "fullName")
+    @Mapping(target = "gender", source = "gender")
+    @Mapping(target = "phone", source = "phone")
+    @Mapping(target = "avatarUrl", source = "avatarUrl")
+    @Mapping(target = "qualification", source = "qualification")
+    @Mapping(target = "consultationFee", source = "consultationFee")
+    @Mapping(target = "yearsOfExperience", source = "yearsOfExperience")
+    @Mapping(target = "specialtyName", source = "specialtyName")
+    DoctorResponse projectionToResponse(DoctorProjection projection);
+
 //
 //    default String buildFullName(User user) {
 //        if (user.getUserProfile() == null) {
@@ -50,4 +52,4 @@
 //        }
 //        return user.getUserProfile().getGender().toString();
 //    }
-//}
+}

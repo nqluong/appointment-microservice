@@ -13,7 +13,6 @@ import org.springframework.web.context.request.WebRequest;
 @Slf4j
 @RestControllerAdvice
 public class AuthServiceExceptionHandler extends GlobalExceptionHandler{
-
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(
             AuthenticationException ex, WebRequest request) {

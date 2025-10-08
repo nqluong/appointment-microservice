@@ -14,5 +14,5 @@ public interface PhotoUploadService {
      * @param request Yêu cầu upload ảnh
      * @return Đường dẫn ảnh mới
      */
-   // PhotoUploadResponse uploadUserPhoto(UUID userId, PhotoUploadRequest request);
+    PhotoUploadResponse uploadUserPhoto(UUID userId, PhotoUploadRequest request);
 }

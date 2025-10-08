@@ -1,17 +1,23 @@
 package org.project.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.common.security.token.GatewayUserPrincipal;
 import org.project.common.security.util.SecurityUtils;
+import org.project.dto.request.PhotoUploadRequest;
+import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileResponse;
+import org.project.dto.response.PhotoUploadResponse;
 import org.project.service.PhotoUploadService;
 import org.project.service.ProfileService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -24,16 +30,16 @@ public class ProfileController {
     private final PhotoUploadService photoUploadService;
     private final SecurityUtils securityUtils;
 
-//    @PutMapping("/update")
-//    //@RequireOwnershipOrAdmin(allowedRoles = {"DOCTOR", "PATIENT"})
-//    public ResponseEntity<CompleteProfileResponse> updateUserProfile(
-//            @PathVariable UUID userId,
-//            @Valid @RequestBody ProfileUpdateRequest request) {
-//
-//        CompleteProfileResponse response = profileService.updateProfile(userId, request);
-//
-//        return ResponseEntity.ok(response);
-//    }
+    @PutMapping("/update")
+    @RequireOwnershipOrAdmin(allowedRoles = {"DOCTOR", "PATIENT"})
+    public ResponseEntity<CompleteProfileResponse> updateUserProfile(
+            @PathVariable UUID userId,
+            @Valid @RequestBody ProfileUpdateRequest request) {
+
+        CompleteProfileResponse response = profileService.updateProfile(userId, request);
+
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/me")
     public ResponseEntity<CompleteProfileResponse> getMyProfile(
@@ -51,23 +57,23 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
 
-//    @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//   // @RequireOwnershipOrAdmin(allowedRoles = {"DOCTOR", "PATIENT"})
-//    public ResponseEntity<PhotoUploadResponse> uploadUserPhoto(
-//            @PathVariable UUID userId,
-//            @RequestParam("photo") MultipartFile photo) {
-//
-//
-//        PhotoUploadRequest request = PhotoUploadRequest.builder()
-//                .photo(photo)
-//                .build();
-//
-//        PhotoUploadResponse response = photoUploadService.uploadUserPhoto(userId, request);
-//
-//        if (response.isSuccess()) {
-//            return ResponseEntity.ok(response);
-//        } else {
-//            return ResponseEntity.badRequest().body(response);
-//        }
-//    }
+    @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireOwnershipOrAdmin(allowedRoles = {"DOCTOR", "PATIENT"})
+    public ResponseEntity<PhotoUploadResponse> uploadUserPhoto(
+            @PathVariable UUID userId,
+            @RequestParam("photo") MultipartFile photo) {
+
+
+        PhotoUploadRequest request = PhotoUploadRequest.builder()
+                .photo(photo)
+                .build();
+
+        PhotoUploadResponse response = photoUploadService.uploadUserPhoto(userId, request);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

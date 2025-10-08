@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.catalina.User;
+import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileProjection;
 import org.project.dto.response.CompleteProfileResponse;
 import org.project.enums.Gender;
@@ -34,21 +35,21 @@ import java.util.UUID;
 public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    //
-//    private static final String SELECT_USER_PROFILE_SQL = """
-//        SELECT id, user_id, first_name, last_name, date_of_birth, gender,
-//               address, phone, avatar_url, created_at, updated_at
-//        FROM user_profiles WHERE user_id = :userId
-//        """;
-//
-//    private static final String SELECT_MEDICAL_PROFILE_SQL = """
-//        SELECT id, user_id, blood_type, allergies, medical_history,
-//               emergency_contact_name, emergency_contact_phone, license_number,
-//               qualification, years_of_experience, consultation_fee, bio,
-//               is_doctor_approved, specialty_id, created_at, updated_at
-//        FROM medical_profiles WHERE user_id = :userId
-//        """;
-//
+
+    private static final String SELECT_USER_PROFILE_SQL = """
+        SELECT id, user_id, first_name, last_name, date_of_birth, gender,
+               address, phone, avatar_url, created_at, updated_at
+        FROM user_profiles WHERE user_id = :userId
+        """;
+
+    private static final String SELECT_MEDICAL_PROFILE_SQL = """
+        SELECT id, user_id, blood_type, allergies, medical_history,
+               emergency_contact_name, emergency_contact_phone, license_number,
+               qualification, years_of_experience, consultation_fee, bio,
+               is_doctor_approved, specialty_id, created_at, updated_at
+        FROM medical_profiles WHERE user_id = :userId
+        """;
+
     private static final String SELECT_COMPLETE_USER_PROFILE_SQL = """
             SELECT
                 up.id AS user_profile_id,
@@ -86,26 +87,26 @@ public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
             
         """;
 
-    //
-//    private static final String INSERT_USER_PROFILE_SQL = """
-//        INSERT INTO user_profiles (id, user_id, first_name, last_name, date_of_birth,
-//                                  gender, address, phone, avatar_url, created_at, updated_at)
-//        VALUES (:id, :userId, :firstName, :lastName, :dateOfBirth,
-//                :gender, :address, :phone, :avatarUrl, :createdAt, :updatedAt)
-//        """;
-//
-//    private static final String INSERT_MEDICAL_PROFILE_SQL = """
-//        INSERT INTO medical_profiles (id, user_id, blood_type, allergies, medical_history,
-//                                     emergency_contact_name, emergency_contact_phone,
-//                                     license_number, qualification, years_of_experience,
-//                                     consultation_fee, bio, specialty_id, is_doctor_approved,
-//                                     created_at, updated_at)
-//        VALUES (:id, :userId, :bloodType, :allergies, :medicalHistory,
-//                :emergencyContactName, :emergencyContactPhone,
-//                :licenseNumber, :qualification, :yearsOfExperience,
-//                :consultationFee, :bio, :specialtyId, :isDoctorApproved,
-//                :createdAt, :updatedAt)
-//        """;
+
+    private static final String INSERT_USER_PROFILE_SQL = """
+        INSERT INTO user_profiles (id, user_id, first_name, last_name, date_of_birth,
+                                  gender, address, phone, avatar_url, created_at, updated_at)
+        VALUES (:id, :userId, :firstName, :lastName, :dateOfBirth,
+                :gender, :address, :phone, :avatarUrl, :createdAt, :updatedAt)
+        """;
+
+    private static final String INSERT_MEDICAL_PROFILE_SQL = """
+        INSERT INTO medical_profiles (id, user_id, blood_type, allergies, medical_history,
+                                     emergency_contact_name, emergency_contact_phone,
+                                     license_number, qualification, years_of_experience,
+                                     consultation_fee, bio, specialty_id, is_doctor_approved,
+                                     created_at, updated_at)
+        VALUES (:id, :userId, :bloodType, :allergies, :medicalHistory,
+                :emergencyContactName, :emergencyContactPhone,
+                :licenseNumber, :qualification, :yearsOfExperience,
+                :consultationFee, :bio, :specialtyId, :isDoctorApproved,
+                :createdAt, :updatedAt)
+        """;
 //
 //    private static final String UPDATE_USER_PROFILE_SQL = """
 //        UPDATE user_profiles
@@ -138,39 +139,39 @@ public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
 //        WHERE user_id = :userId
 //        """;
 //
-//    private static final String EXISTS_USER_PROFILE_SQL =
-//            "SELECT COUNT(1) FROM user_profiles WHERE user_id = :userId";
-//
-//    private static final String EXISTS_MEDICAL_PROFILE_SQL =
-//            "SELECT COUNT(1) FROM medical_profiles WHERE user_id = :userId";
-//
-//
-//    //Cập nhật thông tin người dùng
-//    @Override
-//    @Transactional
-//    public boolean updateProfile(UUID userId, ProfileUpdateRequest request) {
-//        try {
-//            boolean hasUpdates = false;
-//
-//            //  Cập nhật bảng UserProfile
-//            if (hasUserProfileFields(request)) {
-//                hasUpdates |= updateUserProfileTable(userId, request);
-//            }
-//
-//            //  Cập nhật bảng Medical Profile
-//            if (hasMedicalProfileFields(request)) {
-//                hasUpdates |= updateMedicalProfileTable(userId, request);
-//            }
-//
-//            log.info("Profile update completed for userId: {}, hasUpdates: {}", userId, hasUpdates);
-//            return hasUpdates;
-//
-//        } catch (Exception e) {
-//            log.error("Error updating profile for userId: {}", userId, e);
-//            throw e;
-//        }
-//    }
-//
+    private static final String EXISTS_USER_PROFILE_SQL =
+            "SELECT COUNT(1) FROM user_profiles WHERE user_id = :userId";
+
+    private static final String EXISTS_MEDICAL_PROFILE_SQL =
+            "SELECT COUNT(1) FROM medical_profiles WHERE user_id = :userId";
+
+
+    //Cập nhật thông tin người dùng
+    @Override
+    @Transactional
+    public boolean updateProfile(UUID userId, ProfileUpdateRequest request) {
+        try {
+            boolean hasUpdates = false;
+
+            //  Cập nhật bảng UserProfile
+            if (hasUserProfileFields(request)) {
+                hasUpdates |= updateUserProfileTable(userId, request);
+            }
+
+            //  Cập nhật bảng Medical Profile
+            if (hasMedicalProfileFields(request)) {
+                hasUpdates |= updateMedicalProfileTable(userId, request);
+            }
+
+            log.info("Profile update completed for userId: {}, hasUpdates: {}", userId, hasUpdates);
+            return hasUpdates;
+
+        } catch (Exception e) {
+            log.error("Error updating profile for userId: {}", userId, e);
+            throw e;
+        }
+    }
+
 //    //Lấy thông tin của người dùng qua userId
     @Override
     public Optional<CompleteProfileProjection> getCompleteUserProfile(UUID userId) {
@@ -256,215 +257,213 @@ public class ProfileJdbcRepositoryImpl implements ProfileJdbcRepository {
 //        }
 //    }
 //
-//    @Override
-//    public boolean existsUserProfile(UUID userId) {
-//        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
-//        Integer count = namedJdbcTemplate.queryForObject(EXISTS_USER_PROFILE_SQL, params, Integer.class);
-//        return count != null && count > 0;
-//    }
-//
-//    @Override
-//    public boolean existsMedicalProfile(UUID userId) {
-//        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
-//        Integer count = namedJdbcTemplate.queryForObject(EXISTS_MEDICAL_PROFILE_SQL, params, Integer.class);
-//        return count != null && count > 0;
-//    }
-//
-//    private boolean updateUserProfileTable(UUID userId, ProfileUpdateRequest request) {
-//        // Tạo mới nếu chưa tồn tại
-//        if (!existsUserProfile(userId)) {
-//            return createUserProfile(userId, request);
-//        }
-//
-//        List<String> setClauses = new ArrayList<>();
-//        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
-//
-//        addFieldToUpdate(setClauses, params, "firstName", request.getFirstName(), "first_name = :firstName");
-//        addFieldToUpdate(setClauses, params, "lastName", request.getLastName(), "last_name = :lastName");
-//        addFieldToUpdate(setClauses, params, "dateOfBirth", request.getDateOfBirth(), "date_of_birth = :dateOfBirth");
-//        addFieldToUpdate(setClauses, params, "gender",
-//                request.getGender() != null ? request.getGender().name() : null, "gender = :gender");
-//        addFieldToUpdate(setClauses, params, "address", request.getAddress(), "address = :address");
-//        addFieldToUpdate(setClauses, params, "phone", request.getPhone(), "phone = :phone");
-//
-//        if (setClauses.isEmpty()) {
-//            log.debug("No user profile fields to update for userId: {}", userId);
-//            return false;
-//        }
-//
-//        String sql = "UPDATE user_profiles SET " + String.join(", ", setClauses) +
-//                ", updated_at = :updatedAt WHERE user_id = :userId";
-//        params.addValue("updatedAt", LocalDateTime.now());
-//
-//        int rowsAffected = namedJdbcTemplate.update(sql, params);
-//        log.debug("Updated {} user profile rows for userId: {}", rowsAffected, userId);
-//        return rowsAffected > 0;
-//    }
-//
-//    private boolean updateMedicalProfileTable(UUID userId, ProfileUpdateRequest request) {
-//        // Tạo mới khi chưa tồn tại
-//        if (!existsMedicalProfile(userId)) {
-//            return createMedicalProfile(userId, request);
-//        }
-//
-//        List<String> setClauses = new ArrayList<>();
-//        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
-//
-//        // Cập nhật các field medical
-//        addFieldToUpdate(setClauses, params, "bloodType", request.getBloodType(), "blood_type = :bloodType");
-//        addFieldToUpdate(setClauses, params, "allergies", request.getAllergies(), "allergies = :allergies");
-//        addFieldToUpdate(setClauses, params, "medicalHistory", request.getMedicalHistory(), "medical_history = :medicalHistory");
-//        addFieldToUpdate(setClauses, params, "emergencyContactName", request.getEmergencyContactName(), "emergency_contact_name = :emergencyContactName");
-//        addFieldToUpdate(setClauses, params, "emergencyContactPhone", request.getEmergencyContactPhone(), "emergency_contact_phone = :emergencyContactPhone");
-//
-//        // Các field chuyên môn
-//        addFieldToUpdate(setClauses, params, "licenseNumber", request.getLicenseNumber(), "license_number = :licenseNumber");
-//        addFieldToUpdate(setClauses, params, "qualification", request.getQualification(), "qualification = :qualification");
-//        addFieldToUpdate(setClauses, params, "yearsOfExperience", request.getYearsOfExperience(), "years_of_experience = :yearsOfExperience");
-//        addFieldToUpdate(setClauses, params, "consultationFee", request.getConsultationFee(), "consultation_fee = :consultationFee");
-//        addFieldToUpdate(setClauses, params, "bio", request.getBio(), "bio = :bio");
-//        addFieldToUpdate(setClauses, params, "isDoctorApproved", request.getIsDoctorApproved(), "is_doctor_approved = :isDoctorApproved");
-//
-//        // Cập nhật riêng chuyên khoa
-//        if (StringUtils.hasText(request.getSpecialtyId())) {
-//            try {
-//                UUID specialtyId = UUID.fromString(request.getSpecialtyId());
-//                setClauses.add("specialty_id = :specialtyId");
-//                params.addValue("specialtyId", specialtyId);
-//            } catch (IllegalArgumentException e) {
-//                log.warn("Invalid specialty ID format: {}", request.getSpecialtyId());
-//            }
-//        }
-//
-//        if (setClauses.isEmpty()) {
-//            log.debug("No medical profile fields to update for userId: {}", userId);
-//            return false;
-//        }
-//
-//        String sql = "UPDATE medical_profiles SET " + String.join(", ", setClauses) +
-//                ", updated_at = :updatedAt WHERE user_id = :userId";
-//        params.addValue("updatedAt", LocalDateTime.now());
-//
-//        int rowsAffected = namedJdbcTemplate.update(sql, params);
-//        log.debug("Updated {} medical profile rows for userId: {}", rowsAffected, userId);
-//        return rowsAffected > 0;
-//    }
-//
-//
-//    private boolean createUserProfile(UUID userId, ProfileUpdateRequest request) {
-//        if (!hasUserProfileFields(request)) {
-//            return false;
-//        }
-//
-//        String sql = """
-//            INSERT INTO user_profiles (id, user_id, first_name, last_name, date_of_birth,
-//                                      gender, address, phone, avatar_url, created_at, updated_at)
-//            VALUES (:id, :userId, :firstName, :lastName, :dateOfBirth,
-//                    :gender, :address, :phone, :avatarUrl, :createdAt, :updatedAt)
-//            """;
-//
-//        MapSqlParameterSource params = new MapSqlParameterSource()
-//                .addValue("id", UUID.randomUUID())
-//                .addValue("userId", userId)
-//                .addValue("firstName", request.getFirstName())
-//                .addValue("lastName", request.getLastName())
-//                .addValue("dateOfBirth", request.getDateOfBirth())
-//                .addValue("gender", request.getGender() != null ? request.getGender().name() : null)
-//                .addValue("address", request.getAddress())
-//                .addValue("phone", request.getPhone())
-//                .addValue("avatarUrl", null) // ProfileUpdateRequest doesn't have avatarUrl
-//                .addValue("createdAt", LocalDateTime.now())
-//                .addValue("updatedAt", LocalDateTime.now());
-//
-//        int rowsAffected = namedJdbcTemplate.update(sql, params);
-//        log.debug("Created user profile for userId: {}, rows: {}", userId, rowsAffected);
-//        return rowsAffected > 0;
-//    }
-//
-//    /**
-//     * Create MedicalProfile from ProfileUpdateRequest
-//     */
-//    private boolean createMedicalProfile(UUID userId, ProfileUpdateRequest request) {
-//        String sql = """
-//            INSERT INTO medical_profiles (id, user_id, blood_type, allergies, medical_history,
-//                                         emergency_contact_name, emergency_contact_phone,
-//                                         license_number, qualification, years_of_experience,
-//                                         consultation_fee, bio, specialty_id, is_doctor_approved,
-//                                         created_at, updated_at)
-//            VALUES (:id, :userId, :bloodType, :allergies, :medicalHistory,
-//                    :emergencyContactName, :emergencyContactPhone,
-//                    :licenseNumber, :qualification, :yearsOfExperience,
-//                    :consultationFee, :bio, :specialtyId, :isDoctorApproved,
-//                    :createdAt, :updatedAt)
-//            """;
-//
-//        MapSqlParameterSource params = new MapSqlParameterSource()
-//                .addValue("id", UUID.randomUUID())
-//                .addValue("userId", userId)
-//                .addValue("bloodType", request.getBloodType())
-//                .addValue("allergies", request.getAllergies())
-//                .addValue("medicalHistory", request.getMedicalHistory())
-//                .addValue("emergencyContactName", request.getEmergencyContactName())
-//                .addValue("emergencyContactPhone", request.getEmergencyContactPhone())
-//                .addValue("licenseNumber", request.getLicenseNumber())
-//                .addValue("qualification", request.getQualification())
-//                .addValue("yearsOfExperience", request.getYearsOfExperience())
-//                .addValue("consultationFee", request.getConsultationFee())
-//                .addValue("bio", request.getBio())
-//                .addValue("isDoctorApproved", request.getIsDoctorApproved() != null ? request.getIsDoctorApproved() : false)
-//                .addValue("createdAt", LocalDateTime.now())
-//                .addValue("updatedAt", LocalDateTime.now());
-//
-//        // Handle specialty
-//        UUID specialtyId = null;
-//        if (StringUtils.hasText(request.getSpecialtyId())) {
-//            try {
-//                specialtyId = UUID.fromString(request.getSpecialtyId());
-//            } catch (IllegalArgumentException e) {
-//                log.warn("Invalid specialty ID format: {}", request.getSpecialtyId());
-//            }
-//        }
-//        params.addValue("specialtyId", specialtyId);
-//
-//        int rowsAffected = namedJdbcTemplate.update(sql, params);
-//        log.debug("Created medical profile for userId: {}, rows: {}", userId, rowsAffected);
-//        return rowsAffected > 0;
-//    }
-//
-//
-//    //Thêm trường vào mệnh đề UPDATE chỉ khi giá trị không null/rỗng
-//    private void addFieldToUpdate(List<String> setClauses, MapSqlParameterSource params,
-//                                  String paramName, Object value, String sqlClause) {
-//        if (value != null && (!(value instanceof String) || StringUtils.hasText((String) value))) {
-//            setClauses.add(sqlClause);
-//            params.addValue(paramName, value);
-//        }
-//    }
-//
-//    private boolean hasUserProfileFields(ProfileUpdateRequest request) {
-//        return StringUtils.hasText(request.getFirstName()) ||
-//                StringUtils.hasText(request.getLastName()) ||
-//                request.getDateOfBirth() != null ||
-//                request.getGender() != null ||
-//                StringUtils.hasText(request.getAddress()) ||
-//                StringUtils.hasText(request.getPhone());
-//    }
-//
-//    private boolean hasMedicalProfileFields(ProfileUpdateRequest request) {
-//        return StringUtils.hasText(request.getBloodType()) ||
-//                StringUtils.hasText(request.getAllergies()) ||
-//                StringUtils.hasText(request.getMedicalHistory()) ||
-//                StringUtils.hasText(request.getEmergencyContactName()) ||
-//                StringUtils.hasText(request.getEmergencyContactPhone()) ||
-//                StringUtils.hasText(request.getLicenseNumber()) ||
-//                StringUtils.hasText(request.getQualification()) ||
-//                request.getYearsOfExperience() != null ||
-//                request.getConsultationFee() != null ||
-//                StringUtils.hasText(request.getBio()) ||
-//                StringUtils.hasText(request.getSpecialtyId()) ||
-//                request.getIsDoctorApproved() != null;
-//    }
-//
+    @Override
+    public boolean existsUserProfile(UUID userId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
+        Integer count = namedJdbcTemplate.queryForObject(EXISTS_USER_PROFILE_SQL, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public boolean existsMedicalProfile(UUID userId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
+        Integer count = namedJdbcTemplate.queryForObject(EXISTS_MEDICAL_PROFILE_SQL, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    private boolean updateUserProfileTable(UUID userId, ProfileUpdateRequest request) {
+        // Tạo mới nếu chưa tồn tại
+        if (!existsUserProfile(userId)) {
+            return createUserProfile(userId, request);
+        }
+
+        List<String> setClauses = new ArrayList<>();
+        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
+
+        addFieldToUpdate(setClauses, params, "firstName", request.getFirstName(), "first_name = :firstName");
+        addFieldToUpdate(setClauses, params, "lastName", request.getLastName(), "last_name = :lastName");
+        addFieldToUpdate(setClauses, params, "dateOfBirth", request.getDateOfBirth(), "date_of_birth = :dateOfBirth");
+        addFieldToUpdate(setClauses, params, "gender",
+                request.getGender() != null ? request.getGender().name() : null, "gender = :gender");
+        addFieldToUpdate(setClauses, params, "address", request.getAddress(), "address = :address");
+        addFieldToUpdate(setClauses, params, "phone", request.getPhone(), "phone = :phone");
+
+        if (setClauses.isEmpty()) {
+            log.debug("No user profile fields to update for userId: {}", userId);
+            return false;
+        }
+
+        String sql = "UPDATE user_profiles SET " + String.join(", ", setClauses) +
+                ", updated_at = :updatedAt WHERE user_id = :userId";
+        params.addValue("updatedAt", LocalDateTime.now());
+
+        int rowsAffected = namedJdbcTemplate.update(sql, params);
+        log.debug("Updated {} user profile rows for userId: {}", rowsAffected, userId);
+        return rowsAffected > 0;
+    }
+
+    private boolean updateMedicalProfileTable(UUID userId, ProfileUpdateRequest request) {
+        // Tạo mới khi chưa tồn tại
+        if (!existsMedicalProfile(userId)) {
+            return createMedicalProfile(userId, request);
+        }
+
+        List<String> setClauses = new ArrayList<>();
+        MapSqlParameterSource params = new MapSqlParameterSource("userId", userId);
+
+        // Cập nhật các field medical
+        addFieldToUpdate(setClauses, params, "bloodType", request.getBloodType(), "blood_type = :bloodType");
+        addFieldToUpdate(setClauses, params, "allergies", request.getAllergies(), "allergies = :allergies");
+        addFieldToUpdate(setClauses, params, "medicalHistory", request.getMedicalHistory(), "medical_history = :medicalHistory");
+        addFieldToUpdate(setClauses, params, "emergencyContactName", request.getEmergencyContactName(), "emergency_contact_name = :emergencyContactName");
+        addFieldToUpdate(setClauses, params, "emergencyContactPhone", request.getEmergencyContactPhone(), "emergency_contact_phone = :emergencyContactPhone");
+
+        // Các field chuyên môn
+        addFieldToUpdate(setClauses, params, "licenseNumber", request.getLicenseNumber(), "license_number = :licenseNumber");
+        addFieldToUpdate(setClauses, params, "qualification", request.getQualification(), "qualification = :qualification");
+        addFieldToUpdate(setClauses, params, "yearsOfExperience", request.getYearsOfExperience(), "years_of_experience = :yearsOfExperience");
+        addFieldToUpdate(setClauses, params, "consultationFee", request.getConsultationFee(), "consultation_fee = :consultationFee");
+        addFieldToUpdate(setClauses, params, "bio", request.getBio(), "bio = :bio");
+        addFieldToUpdate(setClauses, params, "isDoctorApproved", request.getIsDoctorApproved(), "is_doctor_approved = :isDoctorApproved");
+
+        // Cập nhật riêng chuyên khoa
+        if (StringUtils.hasText(request.getSpecialtyId())) {
+            try {
+                UUID specialtyId = UUID.fromString(request.getSpecialtyId());
+                setClauses.add("specialty_id = :specialtyId");
+                params.addValue("specialtyId", specialtyId);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid specialty ID format: {}", request.getSpecialtyId());
+            }
+        }
+
+        if (setClauses.isEmpty()) {
+            log.debug("No medical profile fields to update for userId: {}", userId);
+            return false;
+        }
+
+        String sql = "UPDATE medical_profiles SET " + String.join(", ", setClauses) +
+                ", updated_at = :updatedAt WHERE user_id = :userId";
+        params.addValue("updatedAt", LocalDateTime.now());
+
+        int rowsAffected = namedJdbcTemplate.update(sql, params);
+        log.debug("Updated {} medical profile rows for userId: {}", rowsAffected, userId);
+        return rowsAffected > 0;
+    }
+
+
+    private boolean createUserProfile(UUID userId, ProfileUpdateRequest request) {
+        if (!hasUserProfileFields(request)) {
+            return false;
+        }
+
+        String sql = """
+            INSERT INTO user_profiles (id, user_id, first_name, last_name, date_of_birth,
+                                      gender, address, phone, avatar_url, created_at, updated_at)
+            VALUES (:id, :userId, :firstName, :lastName, :dateOfBirth,
+                    :gender, :address, :phone, :avatarUrl, :createdAt, :updatedAt)
+            """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", UUID.randomUUID())
+                .addValue("userId", userId)
+                .addValue("firstName", request.getFirstName())
+                .addValue("lastName", request.getLastName())
+                .addValue("dateOfBirth", request.getDateOfBirth())
+                .addValue("gender", request.getGender() != null ? request.getGender().name() : null)
+                .addValue("address", request.getAddress())
+                .addValue("phone", request.getPhone())
+                .addValue("avatarUrl", null) // ProfileUpdateRequest doesn't have avatarUrl
+                .addValue("createdAt", LocalDateTime.now())
+                .addValue("updatedAt", LocalDateTime.now());
+
+        int rowsAffected = namedJdbcTemplate.update(sql, params);
+        log.debug("Created user profile for userId: {}, rows: {}", userId, rowsAffected);
+        return rowsAffected > 0;
+    }
+
+    /**
+     * Create MedicalProfile from ProfileUpdateRequest
+     */
+    private boolean createMedicalProfile(UUID userId, ProfileUpdateRequest request) {
+        String sql = """
+            INSERT INTO medical_profiles (id, user_id, blood_type, allergies, medical_history,
+                                         emergency_contact_name, emergency_contact_phone,
+                                         license_number, qualification, years_of_experience,
+                                         consultation_fee, bio, specialty_id, is_doctor_approved,
+                                         created_at, updated_at)
+            VALUES (:id, :userId, :bloodType, :allergies, :medicalHistory,
+                    :emergencyContactName, :emergencyContactPhone,
+                    :licenseNumber, :qualification, :yearsOfExperience,
+                    :consultationFee, :bio, :specialtyId, :isDoctorApproved,
+                    :createdAt, :updatedAt)
+            """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", UUID.randomUUID())
+                .addValue("userId", userId)
+                .addValue("bloodType", request.getBloodType())
+                .addValue("allergies", request.getAllergies())
+                .addValue("medicalHistory", request.getMedicalHistory())
+                .addValue("emergencyContactName", request.getEmergencyContactName())
+                .addValue("emergencyContactPhone", request.getEmergencyContactPhone())
+                .addValue("licenseNumber", request.getLicenseNumber())
+                .addValue("qualification", request.getQualification())
+                .addValue("yearsOfExperience", request.getYearsOfExperience())
+                .addValue("consultationFee", request.getConsultationFee())
+                .addValue("bio", request.getBio())
+                .addValue("isDoctorApproved", request.getIsDoctorApproved() != null ? request.getIsDoctorApproved() : false)
+                .addValue("createdAt", LocalDateTime.now())
+                .addValue("updatedAt", LocalDateTime.now());
+
+        // Handle specialty
+        UUID specialtyId = null;
+        if (StringUtils.hasText(request.getSpecialtyId())) {
+            try {
+                specialtyId = UUID.fromString(request.getSpecialtyId());
+            } catch (IllegalArgumentException e) {
+            }
+        }
+        params.addValue("specialtyId", specialtyId);
+
+        int rowsAffected = namedJdbcTemplate.update(sql, params);
+        return rowsAffected > 0;
+    }
+
+
+    //Thêm trường vào mệnh đề UPDATE chỉ khi giá trị không null/rỗng
+    private void addFieldToUpdate(List<String> setClauses, MapSqlParameterSource params,
+                                  String paramName, Object value, String sqlClause) {
+        if (value != null && (!(value instanceof String) || StringUtils.hasText((String) value))) {
+            setClauses.add(sqlClause);
+            params.addValue(paramName, value);
+        }
+    }
+
+    private boolean hasUserProfileFields(ProfileUpdateRequest request) {
+        return StringUtils.hasText(request.getFirstName()) ||
+                StringUtils.hasText(request.getLastName()) ||
+                request.getDateOfBirth() != null ||
+                request.getGender() != null ||
+                StringUtils.hasText(request.getAddress()) ||
+                StringUtils.hasText(request.getPhone());
+    }
+
+    private boolean hasMedicalProfileFields(ProfileUpdateRequest request) {
+        return StringUtils.hasText(request.getBloodType()) ||
+                StringUtils.hasText(request.getAllergies()) ||
+                StringUtils.hasText(request.getMedicalHistory()) ||
+                StringUtils.hasText(request.getEmergencyContactName()) ||
+                StringUtils.hasText(request.getEmergencyContactPhone()) ||
+                StringUtils.hasText(request.getLicenseNumber()) ||
+                StringUtils.hasText(request.getQualification()) ||
+                request.getYearsOfExperience() != null ||
+                request.getConsultationFee() != null ||
+                StringUtils.hasText(request.getBio()) ||
+                StringUtils.hasText(request.getSpecialtyId()) ||
+                request.getIsDoctorApproved() != null;
+    }
+
 //    //RowMapper cho UserProfile
 //    private static class UserProfileRowMapper implements RowMapper<UserProfile> {
 //        @Override

@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/avatars/**").permitAll()
                 .requestMatchers("/images/**").permitAll()
                // .requestMatchers("/favicon.ico").permitAll()
+
+                .requestMatchers("/api/internal/**").permitAll()
                 .anyRequest().authenticated());
 
         http.oauth2ResourceServer(oauth2 -> oauth2

@@ -2,6 +2,7 @@ package org.project.repository;
 
 
 
+import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileProjection;
 import org.project.model.UserProfile;
 
@@ -9,15 +10,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ProfileJdbcRepository {
-//
-//    /**
-//     * Cập nhật profile thông qua request (đã được filter bởi strategy)
-//     * @param userId ID của user
-//     * @param request update request (đã được filter)
-//     * @return true nếu cập nhật thành công
-//     */
-//    boolean updateProfile(UUID userId, ProfileUpdateRequest request);
-//
+
+    /**
+     * Cập nhật profile thông qua request (đã được filter bởi strategy)
+     * @param userId ID của user
+     * @param request update request (đã được filter)
+     * @return true nếu cập nhật thành công
+     */
+    boolean updateProfile(UUID userId, ProfileUpdateRequest request);
+
     /**
      * Lấy complete profile information
      * @param userId ID của user
@@ -55,17 +56,17 @@ public interface ProfileJdbcRepository {
 //     */
 //    Optional<MedicalProfile> findMedicalProfileByUserId(UUID userId);
 //
-//    /**
-//     * Kiểm tra UserProfile có tồn tại không
-//     * @param userId ID của user
-//     * @return true nếu tồn tại
-//     */
-//    boolean existsUserProfile(UUID userId);
-//
-//    /**
-//     * Kiểm tra MedicalProfile có tồn tại không
-//     * @param userId ID của user
-//     * @return true nếu tồn tại
-//     */
-//    boolean existsMedicalProfile(UUID userId);
+    /**
+     * Kiểm tra UserProfile có tồn tại không
+     * @param userId ID của user
+     * @return true nếu tồn tại
+     */
+    boolean existsUserProfile(UUID userId);
+
+    /**
+     * Kiểm tra MedicalProfile có tồn tại không
+     * @param userId ID của user
+     * @return true nếu tồn tại
+     */
+    boolean existsMedicalProfile(UUID userId);
 }
