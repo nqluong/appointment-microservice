@@ -12,7 +12,9 @@ import org.project.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,5 +41,51 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByUserId(UUID userId) {
         return userRepository.existsById(userId);
+    }
+
+    @Override
+    public boolean hasRole(UUID userId, String roleName) {
+        return userRepository.findById(userId)
+                .map(user -> user.getUserRoles().stream()
+                        .anyMatch(userRole -> roleName.equalsIgnoreCase(userRole.getRole().getName())))
+                .orElse(false);
+    }
+
+    @Override
+    public boolean hasAllRoles(UUID userId, List<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return false;
+        }
+
+        return userRepository.findById(userId)
+                .map(user -> {
+                    Set<String> userRoles = user.getUserRoles().stream()
+                            .map(userRole -> userRole.getRole().getName().toUpperCase())
+                            .collect(Collectors.toSet());
+
+                    return roleNames.stream()
+                            .map(String::toUpperCase)
+                            .allMatch(userRoles::contains);
+                })
+                .orElse(false);
+    }
+
+    @Override
+    public boolean hasAnyRole(UUID userId, List<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return false;
+        }
+
+        return userRepository.findById(userId)
+                .map(user -> {
+                    Set<String> userRoles = user.getUserRoles().stream()
+                            .map(userRole -> userRole.getRole().getName().toUpperCase())
+                            .collect(Collectors.toSet());
+                    
+                    return roleNames.stream()
+                            .map(String::toUpperCase)
+                            .anyMatch(userRoles::contains);
+                })
+                .orElse(false);
     }
 }

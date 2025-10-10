@@ -5,11 +5,9 @@ import org.project.dto.response.UserIdsResponse;
 import org.project.model.User;
 import org.project.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,5 +31,26 @@ public class InternalUserController {
     @GetMapping("/exists/{userId}")
     public ResponseEntity<Boolean> existsByUserId(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.existsByUserId(userId));
+    }
+
+    @GetMapping("/{userId}/has-role/{roleName}")
+    public ResponseEntity<Boolean> hasRole(
+            @PathVariable UUID userId,
+            @PathVariable String roleName) {
+        return ResponseEntity.ok(userService.hasRole(userId, roleName));
+    }
+
+    @GetMapping("/{userId}/has-all-roles")
+    public ResponseEntity<Boolean> hasAllRoles(
+            @PathVariable UUID userId,
+            @RequestParam List<String> roles) {
+        return ResponseEntity.ok(userService.hasAllRoles(userId, roles));
+    }
+
+    @GetMapping("/{userId}/has-any-role")
+    public ResponseEntity<Boolean> hasAnyRole(
+            @PathVariable UUID userId,
+            @RequestParam List<String> roles) {
+        return ResponseEntity.ok(userService.hasAnyRole(userId, roles));
     }
 }

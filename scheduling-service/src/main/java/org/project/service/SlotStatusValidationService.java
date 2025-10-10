@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface SlotStatusValidationService {
     // Validate slot cho việc cập nhật trạng thái
-   // DoctorAvailableSlot findAndValidateSlotForUpdate(UUID slotId, boolean newStatus);
+    DoctorAvailableSlot findAndValidateSlotForUpdate(UUID slotId, boolean newStatus);
 
     // Validate việc cập nhật trạng thái availability của slot
     void validateSlotAvailabilityUpdate(UUID slotId, DoctorAvailableSlot slot, boolean newStatus);

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAbsenceRequest;
 import org.project.dto.request.UpdateAbsenceRequest;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -28,21 +30,21 @@ public class DoctorAbsenceController {
 
     private final DoctorAbsenceService absenceService;
 
-//    @PostMapping
-//    @RequireOwnershipOrAdmin(userIdParam = "doctorUserId", allowedRoles = {"DOCTOR", "ADMIN"})
-//    public ResponseEntity<DoctorAbsenceResponse> createAbsence(@Valid @RequestBody CreateAbsenceRequest request) {
-//        DoctorAbsenceResponse createdAbsence = absenceService.createAbsence(request);
-//        return new ResponseEntity<>(createdAbsence, HttpStatus.CREATED);
-//    }
+    @PostMapping
+    @RequireOwnershipOrAdmin(userIdParam = "doctorUserId", allowedRoles = {"DOCTOR", "ADMIN"})
+    public ResponseEntity<DoctorAbsenceResponse> createAbsence(@Valid @RequestBody CreateAbsenceRequest request) {
+        DoctorAbsenceResponse createdAbsence = absenceService.createAbsence(request);
+        return new ResponseEntity<>(createdAbsence, HttpStatus.CREATED);
+    }
 
-//    @PutMapping("/{absenceId}")
-//    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
-//    public ResponseEntity<DoctorAbsenceResponse> updateAbsence(
-//            @PathVariable UUID absenceId,
-//            @Valid @RequestBody UpdateAbsenceRequest request) {
-//        DoctorAbsenceResponse updatedAbsence = absenceService.updateAbsence(absenceId, request);
-//        return ResponseEntity.ok(updatedAbsence);
-//    }
+    @PutMapping("/{absenceId}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
+    public ResponseEntity<DoctorAbsenceResponse> updateAbsence(
+            @PathVariable UUID absenceId,
+            @Valid @RequestBody UpdateAbsenceRequest request) {
+        DoctorAbsenceResponse updatedAbsence = absenceService.updateAbsence(absenceId, request);
+        return ResponseEntity.ok(updatedAbsence);
+    }
 
     @GetMapping("/{absenceId}")
     public ResponseEntity<DoctorAbsenceResponse> getAbsenceById(@PathVariable UUID absenceId) {
@@ -84,14 +86,14 @@ public class DoctorAbsenceController {
     }
 
     @DeleteMapping("/{absenceId}")
-    //@PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public ResponseEntity<Void> deleteAbsence(@PathVariable UUID absenceId) {
         absenceService.deleteAbsence(absenceId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/cleanup")
-  //  @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Integer> cleanupPastAbsences(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate cutoffDate) {
         int deletedCount = absenceService.cleanupPastAbsences(cutoffDate);

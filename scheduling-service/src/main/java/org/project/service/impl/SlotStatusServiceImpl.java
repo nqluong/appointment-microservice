@@ -30,80 +30,80 @@ public class SlotStatusServiceImpl implements SlotStatusService {
     SlotStatusRepository slotStatusRepository;
     SlotStatusValidationService slotStatusValidationService;
 
-//    @Override
-//    public SlotStatusUpdateResponse markSlotAvailable(UUID slotId) {
-//        return updateSlotStatus(slotId, true, "Slot marked as available");
-//    }
-//
-//    @Override
-//    public SlotStatusUpdateResponse markSlotUnavailable(UUID slotId) {
-//        return updateSlotStatus(slotId, false, "Slot marked as unavailable");
-//    }
+    @Override
+    public SlotStatusUpdateResponse markSlotAvailable(UUID slotId) {
+        return updateSlotStatus(slotId, true, "Slot marked as available");
+    }
+
+    @Override
+    public SlotStatusUpdateResponse markSlotUnavailable(UUID slotId) {
+        return updateSlotStatus(slotId, false, "Slot marked as unavailable");
+    }
 
 
-//    @Override
-//    @Transactional
-//    public List<SlotStatusUpdateResponse> updateMultipleSlotStatus(List<BatchSlotStatusRequest> requests) {
-//        slotStatusValidationService.validateMultipleSlotStatusUpdate(requests);
-//
-//        return requests.stream()
-//                .map(request -> updateSlotStatus(
-//                        request.getSlotId(),
-//                        request.getIsAvailable(),
-//                        request.getReason() != null ? request.getReason() :
-//                                (request.getIsAvailable() ? "Batch update: available" : "Batch update: unavailable")
-//                ))
-//                .collect(Collectors.toList());
-//    }
+    @Override
+    @Transactional
+    public List<SlotStatusUpdateResponse> updateMultipleSlotStatus(List<BatchSlotStatusRequest> requests) {
+        slotStatusValidationService.validateMultipleSlotStatusUpdate(requests);
 
-//    @Override
-//    @Transactional
-//    public SlotStatusUpdateResponse reserveSlot(UUID slotId) {
-//        return updateSlotStatusWithValidation(slotId, false, "Reserved for appointment booking",
-//                ValidationType.RESERVATION);
-//    }
-//
-//    @Override
-//    @Transactional
-//    public SlotStatusUpdateResponse releaseSlot(UUID slotId) {
-//        return updateSlotStatusWithValidation(slotId, true, "Released from reservation",
-//                ValidationType.RELEASE);
-//    }
+        return requests.stream()
+                .map(request -> updateSlotStatus(
+                        request.getSlotId(),
+                        request.getIsAvailable(),
+                        request.getReason() != null ? request.getReason() :
+                                (request.getIsAvailable() ? "Batch update: available" : "Batch update: unavailable")
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SlotStatusUpdateResponse reserveSlot(UUID slotId) {
+        return updateSlotStatusWithValidation(slotId, false, "Reserved for appointment booking",
+                ValidationType.RESERVATION);
+    }
+
+    @Override
+    @Transactional
+    public SlotStatusUpdateResponse releaseSlot(UUID slotId) {
+        return updateSlotStatusWithValidation(slotId, true, "Released from reservation",
+                ValidationType.RELEASE);
+    }
 
 
-//    private SlotStatusUpdateResponse updateSlotStatusWithValidation(UUID slotId, boolean isAvailable,
-//                                                                    String reason, ValidationType validationType) {
-//
-//        //DoctorAvailableSlot slot = findSlotWithDoctor(slotId);
-//
-//        // Thực hiện validation phù hợp
-//        switch (validationType) {
-//            case RESERVATION:
-//                slotStatusValidationService.validateSlotReservation(slotId, slot);
-//                break;
-//            case RELEASE:
-//                slotStatusValidationService.validateSlotRelease(slotId, slot);
-//                break;
-//            case UPDATE:
-//                slotStatusValidationService.validateSlotAvailabilityUpdate(slotId, slot, isAvailable);
-//                break;
-//        }
-//
-//        // Cập nhật và lưu slot
-//        return saveAndBuildResponse(slot, isAvailable, reason);
-//    }
+    private SlotStatusUpdateResponse updateSlotStatusWithValidation(UUID slotId, boolean isAvailable,
+                                                                    String reason, ValidationType validationType) {
 
-//    private SlotStatusUpdateResponse updateSlotStatus(UUID slotId, boolean isAvailable, String reason) {
-//        DoctorAvailableSlot slot = slotStatusValidationService.findAndValidateSlotForUpdate(slotId, isAvailable);
-//
-//        return saveAndBuildResponse(slot, isAvailable, reason);
-//
-//    }
+        DoctorAvailableSlot slot = findSlotWithDoctor(slotId);
 
-//    private DoctorAvailableSlot findSlotWithDoctor(UUID slotId) {
-//        return slotStatusRepository.findByIdWithDoctor(slotId)
-//                .orElseThrow(() -> new CustomException(ErrorCode.SLOT_NOT_FOUND));
-//    }
+        // Thực hiện validation phù hợp
+        switch (validationType) {
+            case RESERVATION:
+                slotStatusValidationService.validateSlotReservation(slotId, slot);
+                break;
+            case RELEASE:
+                slotStatusValidationService.validateSlotRelease(slotId, slot);
+                break;
+            case UPDATE:
+                slotStatusValidationService.validateSlotAvailabilityUpdate(slotId, slot, isAvailable);
+                break;
+        }
+
+        // Cập nhật và lưu slot
+        return saveAndBuildResponse(slot, isAvailable, reason);
+    }
+
+    private SlotStatusUpdateResponse updateSlotStatus(UUID slotId, boolean isAvailable, String reason) {
+        DoctorAvailableSlot slot = slotStatusValidationService.findAndValidateSlotForUpdate(slotId, isAvailable);
+
+        return saveAndBuildResponse(slot, isAvailable, reason);
+
+    }
+
+    private DoctorAvailableSlot findSlotWithDoctor(UUID slotId) {
+        return slotStatusRepository.findByIdWithDoctor(slotId)
+                .orElseThrow(() -> new CustomException(ErrorCode.SLOT_NOT_FOUND));
+    }
 
     private SlotStatusUpdateResponse buildSlotStatusUpdateResponse(DoctorAvailableSlot slot, String message) {
         return SlotStatusUpdateResponse.builder()

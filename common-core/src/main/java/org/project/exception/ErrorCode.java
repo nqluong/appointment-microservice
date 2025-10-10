@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     INTERNAL_SERVER_ERROR(9999, "Lỗi hệ thống", HttpStatus.INTERNAL_SERVER_ERROR),
+    EXTERNAL_SERVICE_ERROR(9998, "Dịch vụ bên ngoài đang gặp sự cố", HttpStatus.SERVICE_UNAVAILABLE),
+    SERVICE_UNAVAILABLE(9997, "Dịch vụ tạm thời không khả dụng", HttpStatus.SERVICE_UNAVAILABLE),
+    COMMUNICATION_ERROR(9996, "Lỗi khi giao tiếp với dịch vụ khác", HttpStatus.SERVICE_UNAVAILABLE),
     INVALID_REQUEST(1000, "Yêu cầu không hợp lệ", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(1001, "Chưa xác thực", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1002, "Không có quyền truy cập", HttpStatus.UNAUTHORIZED),

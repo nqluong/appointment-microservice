@@ -29,6 +29,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(e.getErrorCode().getHttpStatus()).body(errorResponse);
     }
 
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ErrorResponse> handleExternalServiceException(
+            ExternalServiceException ex, WebRequest request) {
+
+        log.error("External service exception: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code(ErrorCode.EXTERNAL_SERVICE_ERROR.getCode())
+                .message(ex.getMessage())
+                .path(extractPath(request))
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(errorResponse);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
         log.error("Validation error occurred: {}", ex.getMessage());

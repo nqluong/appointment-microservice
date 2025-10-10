@@ -17,31 +17,20 @@ import java.util.UUID;
 )
 public interface DoctorAbsenceMapper {
 
-   // @Mapping(source = "doctor.id", target = "doctorUserId")
     DoctorAbsenceResponse toDto(DoctorAbsence entity);
 
     List<DoctorAbsenceResponse> toDtoList(List<DoctorAbsence> entities);
 
-//    @Mapping(target = "id", ignore = true)
-//    @Mapping(target = "createdAt", ignore = true)
-//    @Mapping(target = "updatedAt", ignore = true)
-//   // @Mapping(source = "doctorUserId", target = "doctor", qualifiedByName = "mapUserFromId")
-//    DoctorAbsence toEntity(CreateAbsenceRequest request);
-//
-//    @Mapping(target = "id", ignore = true)
-//    @Mapping(target = "doctor", ignore = true)
-//    @Mapping(target = "createdAt", ignore = true)
-//    @Mapping(target = "updatedAt", ignore = true)
-//    void updateEntityFromRequest(UpdateAbsenceRequest request, @MappingTarget DoctorAbsence entity);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    DoctorAbsence toEntity(CreateAbsenceRequest request);
 
-//    @Named("mapUserFromId")
-//    default User mapUserFromId(UUID userId) {
-//        if (userId == null) {
-//            return null;
-//        }
-//        User user = new User();
-//        user.setId(userId);
-//        return user;
-//    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "doctorUserId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromRequest(UpdateAbsenceRequest request, @MappingTarget DoctorAbsence entity);
+
 }
 

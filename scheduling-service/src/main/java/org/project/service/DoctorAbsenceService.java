@@ -13,9 +13,9 @@ import java.util.UUID;
 
 public interface DoctorAbsenceService {
 
-//    DoctorAbsenceResponse createAbsence(CreateAbsenceRequest request);
-//
-//    DoctorAbsenceResponse updateAbsence(UUID absenceId, UpdateAbsenceRequest request);
+    DoctorAbsenceResponse createAbsence(CreateAbsenceRequest request);
+
+    DoctorAbsenceResponse updateAbsence(UUID absenceId, UpdateAbsenceRequest request);
 
     DoctorAbsenceResponse getAbsenceById(UUID absenceId);
 

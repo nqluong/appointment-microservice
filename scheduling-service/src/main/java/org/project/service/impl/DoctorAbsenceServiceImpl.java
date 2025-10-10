@@ -6,11 +6,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.client.AppointmentServiceClient;
+import org.project.client.PaymentServiceClient;
+import org.project.common.security.util.SecurityUtils;
 import org.project.dto.PageResponse;
 import org.project.dto.request.BatchSlotStatusRequest;
 import org.project.dto.request.CreateAbsenceRequest;
+import org.project.dto.request.PaymentRefundRequest;
 import org.project.dto.request.UpdateAbsenceRequest;
+import org.project.dto.response.AppointmentResponse;
 import org.project.dto.response.DoctorAbsenceResponse;
+import org.project.enums.RefundType;
+import org.project.enums.Status;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.mapper.DoctorAbsenceMapper;
@@ -47,66 +54,65 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
     DoctorAbsenceMapper doctorAbsenceMapper;
     AbsenceValidator absenceValidator;
     PageMapper pageMapper;
-
-
-//    AppointmentRepository appointmentRepository;
-//    PaymentRepository paymentRepository;
-//    PaymentService paymentService;
     SlotStatusService slotStatusService;
     DoctorAvailableSlotRepository doctorAvailableSlotRepository;
+
+    AppointmentServiceClient appointmentServiceClient;
+    PaymentServiceClient paymentServiceClient;
+    SecurityUtils securityUtils;
 
     /**
      - Tạo lịch nghỉ mới cho bác sĩ
      - Xử lý các lịch hẹn bị ảnh hưởng
      */
-//    @Override
-//    public DoctorAbsenceResponse createAbsence(CreateAbsenceRequest request) {
-//        absenceValidator.validateCreateRequest(request);
-//
-//        // Kiểm tra xung đột với lịch nghỉ hiện có
-//        if (hasConflictingAbsence(request.getDoctorUserId(), request.getAbsenceDate(),
-//                request.getStartTime(), request.getEndTime(), null)) {
-//            throw new CustomException(ErrorCode.ABSENCE_CONFLICT);
-//        }
-//
-//        DoctorAbsence absence = doctorAbsenceMapper.toEntity(request);
-//        DoctorAbsence savedAbsence = doctorAbsenceRepository.save(absence);
-//
-//        log.info("Đã tạo lịch nghỉ mới với ID: {}", savedAbsence.getId());
-//        handleAffectedAppointmentsAndSlots(savedAbsence);
-//        return doctorAbsenceMapper.toDto(savedAbsence);
-//    }
+    @Override
+    public DoctorAbsenceResponse createAbsence(CreateAbsenceRequest request) {
+        absenceValidator.validateCreateRequest(request);
 
-//    @Override
-//    public DoctorAbsenceResponse updateAbsence(UUID absenceId, UpdateAbsenceRequest request) {
-//        absenceValidator.validateUpdateRequest(request);
-//
-//        DoctorAbsence existingAbsence = getAbsenceEntityById(absenceId);
-//
-//        validateOwnership(existingAbsence.getDoctor().getId());
-//
-//        if (request.getAbsenceDate() != null || request.getStartTime() != null || request.getEndTime() != null) {
-//            LocalDate newDate = request.getAbsenceDate() != null ?
-//                    request.getAbsenceDate() : existingAbsence.getAbsenceDate();
-//            LocalTime newStartTime = request.getStartTime() != null ?
-//                    request.getStartTime() : existingAbsence.getStartTime();
-//            LocalTime newEndTime = request.getEndTime() != null ?
-//                    request.getEndTime() : existingAbsence.getEndTime();
-//
-//            if (hasConflictingAbsence(existingAbsence.getDoctor().getId(), newDate,
-//                    newStartTime, newEndTime, absenceId)) {
-//               throw new CustomException(ErrorCode.ABSENCE_CONFLICT);
-//            }
-//        }
-//        doctorAbsenceMapper.updateEntityFromRequest(request, existingAbsence);
-//        DoctorAbsence savedAbsence = doctorAbsenceRepository.save(existingAbsence);
-//
-//        log.info("Đã cập nhật lịch nghỉ: {}", absenceId);
-//
-//        handleAffectedAppointmentsAndSlots(savedAbsence);
-//
-//        return doctorAbsenceMapper.toDto(savedAbsence);
-//    }
+        // Kiểm tra xung đột với lịch nghỉ hiện có
+        if (hasConflictingAbsence(request.getDoctorUserId(), request.getAbsenceDate(),
+                request.getStartTime(), request.getEndTime(), null)) {
+            throw new CustomException(ErrorCode.ABSENCE_CONFLICT);
+        }
+
+        DoctorAbsence absence = doctorAbsenceMapper.toEntity(request);
+        DoctorAbsence savedAbsence = doctorAbsenceRepository.save(absence);
+
+        log.info("Đã tạo lịch nghỉ mới với ID: {}", savedAbsence.getId());
+        handleAffectedAppointmentsAndSlots(savedAbsence);
+        return doctorAbsenceMapper.toDto(savedAbsence);
+    }
+
+    @Override
+    public DoctorAbsenceResponse updateAbsence(UUID absenceId, UpdateAbsenceRequest request) {
+        absenceValidator.validateUpdateRequest(request);
+
+        DoctorAbsence existingAbsence = getAbsenceEntityById(absenceId);
+
+        validateOwnership(existingAbsence.getDoctorUserId());
+
+        if (request.getAbsenceDate() != null || request.getStartTime() != null || request.getEndTime() != null) {
+            LocalDate newDate = request.getAbsenceDate() != null ?
+                    request.getAbsenceDate() : existingAbsence.getAbsenceDate();
+            LocalTime newStartTime = request.getStartTime() != null ?
+                    request.getStartTime() : existingAbsence.getStartTime();
+            LocalTime newEndTime = request.getEndTime() != null ?
+                    request.getEndTime() : existingAbsence.getEndTime();
+
+            if (hasConflictingAbsence(existingAbsence.getDoctorUserId(), newDate,
+                    newStartTime, newEndTime, absenceId)) {
+               throw new CustomException(ErrorCode.ABSENCE_CONFLICT);
+            }
+        }
+        doctorAbsenceMapper.updateEntityFromRequest(request, existingAbsence);
+        DoctorAbsence savedAbsence = doctorAbsenceRepository.save(existingAbsence);
+
+        log.info("Đã cập nhật lịch nghỉ: {}", absenceId);
+
+        handleAffectedAppointmentsAndSlots(savedAbsence);
+
+        return doctorAbsenceMapper.toDto(savedAbsence);
+    }
 
     @Override
     public DoctorAbsenceResponse getAbsenceById(UUID absenceId) {
@@ -156,143 +162,138 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
         return deletedCount;
     }
 
-//    private void handleAffectedAppointmentsAndSlots(DoctorAbsence absence) {
-//        if (absence.getAbsenceDate().isBefore(LocalDate.now())) {
-//            log.info("Ngày nghỉ {} đã qua, bỏ qua việc xử lý appointments và slots", absence.getAbsenceDate());
-//            return;
-//        }
-//
-//        try {
-//            //Tìm các appointments bị ảnh hưởng
-//            List<Appointment> affectedAppointments = findAffectedAppointments(absence);
-//
-//            if (!affectedAppointments.isEmpty()) {
-//                processAffectedAppointments(affectedAppointments, "Bác sĩ nghỉ đột suất");
-//                log.info("Đã xử lý {} appointments bị ảnh hưởng", affectedAppointments.size());
-//            }
-//
-//            //Đánh dấu tất cả slots bị ảnh hưởng thành reserved
-//            markAffectedSlotsAsReserved(absence);
-//
-//        } catch (Exception e) {
-//            log.error("Lỗi khi xử lý appointments và slots cho lịch nghỉ ID: {}. Chi tiết: {}",
-//                    absence.getId(), e.getMessage(), e);
-//            throw new CustomException(ErrorCode.ABSENCE_APPOINTMENT_PROCESSING_ERROR, e.getMessage());
-//        }
-//    }
-//
-//    private void processAffectedAppointments(List<Appointment> appointments, String reason) {
-//        log.info("Đang xử lý {} appointments bị ảnh hưởng", appointments.size());
-//
-//        for (Appointment appointment : appointments) {
-//            processAffectedAppointmentSafely(appointment, reason);
-//        }
-//    }
+    private void handleAffectedAppointmentsAndSlots(DoctorAbsence absence) {
+        if (absence.getAbsenceDate().isBefore(LocalDate.now())) {
+            log.info("Ngày nghỉ {} đã qua, bỏ qua việc xử lý appointments và slots", absence.getAbsenceDate());
+            return;
+        }
+
+        try {
+            //Tìm các appointments bị ảnh hưởng
+            List<AppointmentResponse> affectedAppointments = findAffectedAppointments(absence);
+
+            if (!affectedAppointments.isEmpty()) {
+             //   processAffectedAppointments(affectedAppointments, "Bác sĩ nghỉ đột suất");
+                log.info("Đã xử lý {} appointments bị ảnh hưởng", affectedAppointments.size());
+            }
+
+            //Đánh dấu tất cả slots bị ảnh hưởng thành reserved
+            markAffectedSlotsAsReserved(absence);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý appointments và slots cho lịch nghỉ ID: {}. Chi tiết: {}",
+                    absence.getId(), e.getMessage(), e);
+            throw new CustomException(ErrorCode.ABSENCE_APPOINTMENT_PROCESSING_ERROR, e.getMessage());
+        }
+    }
+
+    private void processAffectedAppointments(List<AppointmentResponse> appointments, String reason) {
+        log.info("Đang xử lý {} appointments bị ảnh hưởng", appointments.size());
+
+        for (AppointmentResponse appointment : appointments) {
+            //processAffectedAppointmentSafely(appointment, reason);
+        }
+    }
 
     // Đánh dấu các slots bị ảnh hưởng bởi lịch nghỉ thành reserved
-//    private void markAffectedSlotsAsReserved(DoctorAbsence absence) {
-//        List<DoctorAvailableSlot> affectedSlots = findAffectedSlots(absence);
-//
-//        if (affectedSlots.isEmpty()) {
-//            log.info("Không có slot nào bị ảnh hưởng bởi lịch nghỉ");
-//            return;
-//        }
-//
-//        // Batch reserve tất cả slots bị ảnh hưởng
-//        List<BatchSlotStatusRequest> reservationRequests = affectedSlots.stream()
-//                .filter(DoctorAvailableSlot::isAvailable)
-//                .map(slot -> BatchSlotStatusRequest.builder()
-//                        .slotId(slot.getId())
-//                        .isAvailable(false)
-//                        .reason(String.format("Reserved due to doctor absence on %s",
-//                                absence.getAbsenceDate()))
-//                        .build())
-//                .collect(Collectors.toList());
-//
-//        if (!reservationRequests.isEmpty()) {
-//            try {
-//                slotStatusService.updateMultipleSlotStatus(reservationRequests);
-//                log.info("Đã reserve {} slots do lịch nghỉ bác sĩ", reservationRequests.size());
-//            } catch (Exception e) {
-//                log.error("Lỗi khi reserve slots cho lịch nghỉ: {}", e.getMessage(), e);
-//            }
-//        }
-//    }
+    private void markAffectedSlotsAsReserved(DoctorAbsence absence) {
+        List<DoctorAvailableSlot> affectedSlots = findAffectedSlots(absence);
 
-//    private List<DoctorAvailableSlot> findAffectedSlots(DoctorAbsence absence) {
-//        UUID doctorId = absence.getDoctor().getId();
-//        LocalDate absenceDate = absence.getAbsenceDate();
-//        LocalTime startTime = absence.getStartTime();
-//        LocalTime endTime = absence.getEndTime();
-//
-//        // Trường hợp nghỉ cả ngày (startTime và endTime đều null)
-//        if (startTime == null && endTime == null) {
-//            log.info("Tìm tất cả slots trong ngày {} cho bác sĩ {}", absenceDate, doctorId);
-//            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDate(doctorId, absenceDate);
-//        }
-//
-//        // Trường hợp nghỉ trong khoảng thời gian cụ thể
-//        if (startTime != null && endTime != null) {
-//            log.info("Tìm slots từ {} đến {} ngày {} cho bác sĩ {}",
-//                    startTime, endTime, absenceDate, doctorId);
-//            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndTimeRange(
-//                    doctorId, absenceDate, startTime, endTime);
-//        }
-//
-//        // Trường hợp chỉ có startTime (nghỉ từ thời điểm đó đến cuối ngày)
-//        if (startTime != null) {
-//            log.info("Tìm slots từ {} đến cuối ngày {} cho bác sĩ {}",
-//                    startTime, absenceDate, doctorId);
-//            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndStartTimeAfter(
-//                    doctorId, absenceDate, startTime);
-//        }
-//
-//        // Trường hợp chỉ có endTime (nghỉ từ đầu ngày đến thời điểm đó)
-//        if (endTime != null) {
-//            log.info("Tìm slots từ đầu ngày đến {} ngày {} cho bác sĩ {}",
-//                    endTime, absenceDate, doctorId);
-//            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndEndTimeBefore(
-//                    doctorId, absenceDate, endTime);
-//        }
-//
-//        return Collections.emptyList();
-//    }
+        if (affectedSlots.isEmpty()) {
+            log.info("Không có slot nào bị ảnh hưởng bởi lịch nghỉ");
+            return;
+        }
+
+        // Batch reserve tất cả slots bị ảnh hưởng
+        List<BatchSlotStatusRequest> reservationRequests = affectedSlots.stream()
+                .filter(DoctorAvailableSlot::isAvailable)
+                .map(slot -> BatchSlotStatusRequest.builder()
+                        .slotId(slot.getId())
+                        .isAvailable(false)
+                        .reason(String.format("Reserved due to doctor absence on %s",
+                                absence.getAbsenceDate()))
+                        .build())
+                .collect(Collectors.toList());
+
+        if (!reservationRequests.isEmpty()) {
+            try {
+                slotStatusService.updateMultipleSlotStatus(reservationRequests);
+                log.info("Đã reserve {} slots do lịch nghỉ bác sĩ", reservationRequests.size());
+            } catch (Exception e) {
+                log.error("Lỗi khi reserve slots cho lịch nghỉ: {}", e.getMessage(), e);
+            }
+        }
+    }
+
+    private List<DoctorAvailableSlot> findAffectedSlots(DoctorAbsence absence) {
+        UUID doctorId = absence.getDoctorUserId();
+        LocalDate absenceDate = absence.getAbsenceDate();
+        LocalTime startTime = absence.getStartTime();
+        LocalTime endTime = absence.getEndTime();
+
+        // Trường hợp nghỉ cả ngày (startTime và endTime đều null)
+        if (startTime == null && endTime == null) {
+            log.info("Tìm tất cả slots trong ngày {} cho bác sĩ {}", absenceDate, doctorId);
+            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDate(doctorId, absenceDate);
+        }
+
+        // Trường hợp nghỉ trong khoảng thời gian cụ thể
+        if (startTime != null && endTime != null) {
+            log.info("Tìm slots từ {} đến {} ngày {} cho bác sĩ {}",
+                    startTime, endTime, absenceDate, doctorId);
+            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndTimeRange(
+                    doctorId, absenceDate, startTime, endTime);
+        }
+
+        // Trường hợp chỉ có startTime (nghỉ từ thời điểm đó đến cuối ngày)
+        if (startTime != null) {
+            log.info("Tìm slots từ {} đến cuối ngày {} cho bác sĩ {}",
+                    startTime, absenceDate, doctorId);
+            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndStartTimeAfter(
+                    doctorId, absenceDate, startTime);
+        }
+
+        // Trường hợp chỉ có endTime (nghỉ từ đầu ngày đến thời điểm đó)
+        if (endTime != null) {
+            log.info("Tìm slots từ đầu ngày đến {} ngày {} cho bác sĩ {}",
+                    endTime, absenceDate, doctorId);
+            return doctorAvailableSlotRepository.findByDoctorUserIdAndSlotDateAndEndTimeBefore(
+                    doctorId, absenceDate, endTime);
+        }
+
+        return Collections.emptyList();
+    }
 
     // Tìm các appointment bị ảnh hưởng
-//    private List<Appointment> findAffectedAppointments(DoctorAbsence absence) {
-//        UUID doctorId = absence.getDoctor().getId();
-//        LocalDate absenceDate = absence.getAbsenceDate();
-//        LocalTime startTime = absence.getStartTime();
-//        LocalTime endTime = absence.getEndTime();
-//
-//        List<Status> activeStatuses = Arrays.asList(Status.PENDING, Status.CONFIRMED);
-//        if (startTime == null && endTime == null) {
-//            log.debug("Tìm appointments cả ngày: {}", absenceDate);
-//
-//            return appointmentRepository.findAppointmentsByDoctorAndFullDayOptimal(
-//                    doctorId, absenceDate, activeStatuses);
-//        } else {
-//            // Trường hợp nghỉ trong khoảng thời gian
-//            LocalTime actualStartTime = startTime != null ? startTime : LocalTime.MIN;
-//            LocalTime actualEndTime = endTime != null ? endTime : LocalTime.MAX;
-//
-//            log.debug("Tìm appointments từ {} đến {} trong ngày {}",
-//                    actualStartTime, actualEndTime, absenceDate);
-//
-//            // Sử dụng method tìm appointments overlap
-//            return appointmentRepository.findOverlappingAppointments(
-//                    doctorId, absenceDate, actualStartTime, actualEndTime, activeStatuses);
-//        }
-//    }
+    private List<AppointmentResponse> findAffectedAppointments(DoctorAbsence absence) {
+        UUID doctorId = absence.getDoctorUserId();
+        LocalDate absenceDate = absence.getAbsenceDate();
+        LocalTime startTime = absence.getStartTime();
+        LocalTime endTime = absence.getEndTime();
+
+        List<Status> activeStatuses = Arrays.asList(Status.PENDING, Status.CONFIRMED);
+        if (startTime == null && endTime == null) {
+
+            return appointmentServiceClient.findAppointmentsByDoctorAndFullDay(
+                    doctorId, absenceDate, activeStatuses);
+        } else {
+            // Trường hợp nghỉ trong khoảng thời gian
+            LocalTime actualStartTime = startTime != null ? startTime : LocalTime.MIN;
+            LocalTime actualEndTime = endTime != null ? endTime : LocalTime.MAX;
+
+            return appointmentServiceClient.findAffectedAppointments(
+                    doctorId, absenceDate, actualStartTime, actualEndTime, activeStatuses);
+        }
+    }
 
     // Xử lý hủy lịch hẹn của từng appointment
 //    @Transactional(propagation = Propagation.REQUIRES_NEW)
-//    public void processAffectedAppointmentSafely(Appointment appointment, String reason) {
+//    public void processAffectedAppointmentSafely(AppointmentResponse appointment, String reason) {
 //        try {
 //            processAffectedAppointment(appointment, reason);
 //        } catch (Exception e) {
 //            log.error("Xử lý lịch hẹn ID: {} thất bại. Lỗi: {}",
-//                    appointment.getId(), e.getMessage(), e);
+//                    appointment.getAppointmentId(), e.getMessage(), e);
 //        }
 //    }
 
@@ -301,9 +302,9 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
      - Hủy lịch hẹn
      - Hoàn tiền cho các thanh toán qua VNPAY
      */
-//    private void processAffectedAppointment(Appointment appointment, String reason) {
+//    private void processAffectedAppointment(AppointmentResponse appointment, String reason) {
 //        try {
-//            log.info("Đang xử lý lịch hẹn ID: {}", appointment.getId());
+//            log.info("Đang xử lý lịch hẹn ID: {}", appointment.getAppointmentId());
 //
 //            // Hủy lịch hẹn
 //            appointment.setStatus(Status.CANCELLED);
@@ -318,7 +319,6 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
 //        } catch (Exception e) {
 //            log.error("Lỗi khi xử lý lịch hẹn ID: {}. Chi tiết: {}",
 //                    appointment.getId(), e.getMessage(), e);
-//           // throw new RuntimeException("Xử lý lịch hẹn thất bại: " + appointment.getId(), e);
 //        }
 //    }
 
@@ -327,13 +327,13 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
      - Lọc ra các thanh toán qua VNPAY
      - Xử lý hoàn tiền từng giao dịch
      */
-//    private void refundEligiblePayments(Appointment appointment, String reason) {
+//    private void refundEligiblePayments(AppointmentResponse appointment, String reason) {
 //        // Lấy tất cả thanh toán đã hoàn thành
 //        List<Payment> completedPayments = paymentRepository.findValidPaymentsByAppointmentIdAndStatus(
-//                appointment.getId(), List.of(PaymentStatus.COMPLETED));
+//                appointment.getAppointmentId(), List.of(PaymentStatus.COMPLETED));
 //
 //        if (completedPayments.isEmpty()) {
-//            log.info("Không tìm thấy thanh toán nào cho lịch hẹn ID: {}", appointment.getId());
+//            log.info("Không tìm thấy thanh toán nào cho lịch hẹn ID: {}", appointment.getAppointmentId());
 //            return;
 //        }
 //
@@ -343,12 +343,12 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
 //                .collect(Collectors.toList());
 //
 //        if (vnpayPayments.isEmpty()) {
-//            log.info("Không tìm thấy thanh toán VNPAY nào cho lịch hẹn ID: {}", appointment.getId());
+//            log.info("Không tìm thấy thanh toán VNPAY nào cho lịch hẹn ID: {}", appointment.getAppointmentId());
 //            return;
 //        }
 //
 //        log.info("Tìm thấy {} thanh toán VNPAY cần hoàn tiền cho lịch hẹn ID: {}",
-//                vnpayPayments.size(), appointment.getId());
+//                vnpayPayments.size(), appointment.getAppointmentId());
 //
 //        for (Payment payment : vnpayPayments) {
 //            refundPaymentSafely(payment, appointment, reason);
@@ -359,11 +359,11 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
      - Xử lý hoàn tiền cho từng giao dịch
      */
 //    @Transactional(propagation = Propagation.REQUIRES_NEW)
-//    public void refundPaymentSafely(Payment payment, Appointment appointment, String reason) {
+//    public void refundPaymentSafely(Payment payment, AppointmentResponse appointment, String reason) {
 //        try {
 //            PaymentRefundRequest refundRequest = PaymentRefundRequest.builder()
 //                    .paymentId(payment.getId())
-//                    .appointmentId(appointment.getId())
+//                    .appointmentId(appointment.getAppointmentId())
 //                    .reason(reason + " - Hoàn tiền 100%")
 //                    .refundType(RefundType.FULL_REFUND)
 //                    .build();
@@ -371,14 +371,14 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
 //            paymentService.refundPayment(refundRequest);
 //
 //            log.info("Đã hoàn tiền thành công cho thanh toán ID: {} của lịch hẹn ID: {}, số tiền: {}",
-//                    payment.getId(), appointment.getId(), payment.getAmount());
+//                    payment.getId(), appointment.getAppointmentId(), payment.getAmount());
 //
 //        } catch (Exception e) {
 //            log.error("Hoàn tiền thất bại cho thanh toán ID: {} của lịch hẹn ID: {}. Lỗi: {}",
-//                    payment.getId(), appointment.getId(), e.getMessage(), e);
+//                    payment.getId(), appointment.getAppointmentId(), e.getMessage(), e);
 //        }
 //    }
-//
+
 //    private boolean isVnpayPayment(Payment payment) {
 //        // Kiểm tra phương thức thanh toán là VNPAY
 //        return payment.getPaymentMethod() != null &&
@@ -397,16 +397,16 @@ public class DoctorAbsenceServiceImpl implements DoctorAbsenceService {
         );
     }
 
-//    private void validateOwnership(UUID doctorUserId) {
-//        UUID currentUserId = securityUtils.getCurrentUserId();
-//
-//        if (securityUtils.isCurrentUserAdmin()) {
-//            return;
-//        }
-//
-//        if (!currentUserId.equals(doctorUserId)) {
-//            log.warn("Người dùng {} đã cố gắng chỉnh sửa lịch nghỉ của bác sĩ {}", currentUserId, doctorUserId);
-//            throw new CustomException(ErrorCode.FORBIDDEN);
-//        }
-//    }
+    private void validateOwnership(UUID doctorUserId) {
+        UUID currentUserId = securityUtils.getCurrentUserId();
+
+        if (securityUtils.isCurrentUserAdmin()) {
+            return;
+        }
+
+        if (!currentUserId.equals(doctorUserId)) {
+            log.warn("Người dùng {} đã cố gắng chỉnh sửa lịch nghỉ của bác sĩ {}", currentUserId, doctorUserId);
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+    }
 }

@@ -27,12 +27,12 @@ public class SlotStatusValidationServiceImpl implements SlotStatusValidationServ
     SlotStatusRepository slotStatusRepository;
 
     // Validate slot cho việc cập nhật trạng thái
-//    @Override
-//    public DoctorAvailableSlot findAndValidateSlotForUpdate(UUID slotId, boolean newStatus) {
-//        DoctorAvailableSlot slot = findSlotWithDoctor(slotId);
-//        validateSlotAvailabilityUpdate(slotId, slot, newStatus);
-//        return slot;
-//    }
+    @Override
+    public DoctorAvailableSlot findAndValidateSlotForUpdate(UUID slotId, boolean newStatus) {
+        DoctorAvailableSlot slot = findSlotWithDoctor(slotId);
+        validateSlotAvailabilityUpdate(slotId, slot, newStatus);
+        return slot;
+    }
 
     @Override
     public void validateSlotAvailabilityUpdate(UUID slotId, DoctorAvailableSlot slot, boolean newStatus) {
@@ -98,10 +98,10 @@ public class SlotStatusValidationServiceImpl implements SlotStatusValidationServ
         validateSlotNotInPast(slot);
     }
 
-//    private DoctorAvailableSlot findSlotWithDoctor(UUID slotId) {
-//        return slotStatusRepository.findByIdWithDoctor(slotId)
-//                .orElseThrow(() -> new CustomException(ErrorCode.SLOT_NOT_FOUND));
-//    }
+    private DoctorAvailableSlot findSlotWithDoctor(UUID slotId) {
+        return slotStatusRepository.findByIdWithDoctor(slotId)
+                .orElseThrow(() -> new CustomException(ErrorCode.SLOT_NOT_FOUND));
+    }
 
     // Kiểm tra slot có tồn tại không
     private void validateSlotExists(DoctorAvailableSlot slot) {

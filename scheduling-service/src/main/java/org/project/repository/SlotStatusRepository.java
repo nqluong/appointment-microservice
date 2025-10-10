@@ -16,10 +16,9 @@ import java.util.UUID;
 public interface SlotStatusRepository extends JpaRepository<DoctorAvailableSlot, UUID > {
 
      //Tìm slot theo ID với thông tin doctor
-//    @Query("SELECT s FROM DoctorAvailableSlot s " +
-//            "JOIN FETCH s.doctor " +
-//            "WHERE s.id = :slotId")
-//    Optional<DoctorAvailableSlot> findByIdWithDoctor(@Param("slotId") UUID slotId);
+    @Query("SELECT s FROM DoctorAvailableSlot s " +
+            "WHERE s.id = :slotId")
+    Optional<DoctorAvailableSlot> findByIdWithDoctor(@Param("slotId") UUID slotId);
 
      //Tìm các slot đang available của doctor trong khoảng thời gian
     @Query("SELECT s FROM DoctorAvailableSlot s " +
