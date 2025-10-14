@@ -7,6 +7,12 @@ public class CustomException extends RuntimeException {
     private final ErrorCode errorCode;
     private final Object[] args;
 
+    public CustomException(String customMessage) {
+        super(customMessage);
+        this.errorCode = null;
+        this.args = null;
+    }
+
     public CustomException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;

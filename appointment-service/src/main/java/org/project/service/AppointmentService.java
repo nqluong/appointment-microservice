@@ -3,11 +3,14 @@ package org.project.service;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.response.AppointmentDtoResponse;
+import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,9 +25,11 @@ public interface AppointmentService {
             List<Status> statuses,
             Pageable pageable);
 
-    // AppointmentResponse createAppointment(CreateAppointmentRequest request);
+    AppointmentResponse createAppointment(CreateAppointmentRequest request);
 
-    //PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable);
+    AppointmentResponse getAppointment(UUID appointmentId);
+
+    PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable);
 
 //    AppointmentResponse updateAppointmentStatus(UUID appointmentId, Status newStatus);
 //
@@ -37,4 +42,13 @@ public interface AppointmentService {
 //    MedicalRecordResponse completeAppointmentWithMedicalRecord(CreateMedicalRecordRequest request);
 //
 //    MedicalRecordResponse updateMedicalRecordForAppointment(UUID appointmentId, UpdateMedicalRecordRequest request);
+
+    List<AppointmentInternalResponse> getAffectedFullDay(UUID doctorId, LocalDate date);
+
+    List<AppointmentInternalResponse> getAffectedByTimeRange(UUID doctorId, LocalDate date, LocalTime startTime, LocalTime endTime);
+
+    boolean existsOverlappingAppointment(UUID patientId,LocalDate appointmentDate, LocalTime startTime, LocalTime endTime);
+
+
+    long countPendingAppointmentsByPatient(UUID patientId);
 }

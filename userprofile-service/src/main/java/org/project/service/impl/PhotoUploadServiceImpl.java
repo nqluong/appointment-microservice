@@ -67,7 +67,8 @@ public class PhotoUploadServiceImpl implements PhotoUploadService {
     }
 
     private UserProfile getUserProfileOrCreate(UUID userId) {
-        UserProfile userProfile = userProfileRepository.findByUserId(userId);
+        UserProfile userProfile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (userProfile == null) {
             userProfile = UserProfile.builder()

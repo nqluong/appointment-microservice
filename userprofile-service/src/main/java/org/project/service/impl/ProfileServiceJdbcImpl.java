@@ -8,11 +8,13 @@ import org.project.common.security.util.SecurityUtils;
 import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileProjection;
 import org.project.dto.response.CompleteProfileResponse;
+import org.project.dto.response.UserProfileResponse;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.mapper.ProfileMapper;
 import org.project.model.UserProfile;
 import org.project.repository.ProfileJdbcRepository;
+import org.project.repository.UserProfileRepository;
 import org.project.service.ProfileService;
 import org.project.service.strategy.FieldFilterStrategy;
 import org.project.service.strategy.FieldFilterStrategyFactory;
@@ -28,6 +30,7 @@ import java.util.UUID;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProfileServiceJdbcImpl implements ProfileService {
+    UserProfileRepository userProfileRepository;
     ProfileJdbcRepository profileJdbcRepository;
     ProfileMapper profileMapper;
 //    UserRoleService userRoleService;
@@ -85,6 +88,13 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             log.error("Unexpected error retrieving complete profile for userId: {}", userId, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Override
+    public UserProfileResponse getUserProfile(UUID userId) {
+        UserProfile userProfile = userProfileRepository.findByUserId(userId).orElseThrow(
+                () -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return profileMapper.toUserProfileResponse(userProfile);
     }
 
     /**

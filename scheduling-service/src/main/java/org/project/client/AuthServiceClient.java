@@ -32,7 +32,7 @@ public class AuthServiceClient extends BaseServiceClient{
     }
 
     public boolean checkExistsById(UUID userId){
-        String url = String.format("%s/api/internal/users/%s/exists", authServiceUrl, userId);
+        String url = String.format("%s/api/internal/users/exists/%s", authServiceUrl, userId);
         return get(url, Boolean.class);
     }
 

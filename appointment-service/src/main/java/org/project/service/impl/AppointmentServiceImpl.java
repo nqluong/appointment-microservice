@@ -26,21 +26,33 @@ import lombok.extern.slf4j.Slf4j;
 //import org.project.appointment_project.user.model.User;
 //import org.project.appointment_project.user.repository.UserRepository;
 import org.project.dto.PageResponse;
+import org.project.dto.events.AppointmentCreatedEvent;
+import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.response.AppointmentDtoResponse;
+import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
+import org.project.enums.SagaStatus;
 import org.project.enums.Status;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.mapper.AppointmentMapper;
 import org.project.mapper.PageMapper;
 import org.project.model.Appointment;
+import org.project.model.AppointmentSagaState;
 import org.project.repository.AppointmentRepository;
+import org.project.repository.SagaStateRepository;
 import org.project.service.AppointmentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -50,13 +62,12 @@ import java.util.UUID;
 public class AppointmentServiceImpl implements AppointmentService {
 
     AppointmentRepository appointmentRepository;
-    //    DoctorAvailableSlotRepository slotRepository;
-//    UserRepository userRepository;
+    SagaStateRepository sagaStateRepository;
+    KafkaTemplate<String, Object> kafkaTemplate;
+
 //    AppointmentValidationService validationService;
     PageMapper pageMapper;
     AppointmentMapper appointmentMapper;
-//    SlotStatusService slotStatusService;
-//    MedicalRecordService medicalRecordService;
 
     @Override
     public PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
@@ -83,50 +94,95 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     //Tạo lịch hẹn mới vả xử lý transaction, lock
-//    @Transactional
-//    @Override
-//    public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
-//        log.info("Creating appointment for patient {} with doctor {} at slot {}",
-//                request.getPatientId(), request.getDoctorId(), request.getSlotId());
-//
-//        try {
-//            //Lấy và lock slot để tránh concurrent booking
-//            DoctorAvailableSlot slot = getAndLockSlot(request.getSlotId());
-//
-//            validationService.validateSlotForBooking(slot, request.getDoctorId());
-//
-//            User patient = getUser(request.getPatientId(), ErrorCode.PATIENT_NOT_FOUND);
-//            User doctor = getUser(request.getDoctorId(), ErrorCode.DOCTOR_NOT_FOUND);
-//
-//            validationService.validatePatientForBooking(patient, slot);
-//            validationService.validateDoctorForBooking(doctor);
-//
-//            if (!slot.isAvailable()) {
-//                throw new CustomException(ErrorCode.SLOT_ALREADY_BOOKED);
-//            }
-//
-//            Appointment appointment = createAppointmentEntity(request, doctor, patient, slot);
-//            appointment = appointmentRepository.save(appointment);
-//
-//            // Cập nhật slot status
-//            slotStatusService.reserveSlot(slot.getId());
-//
-//            log.info("Successfully created appointment {} for patient {} with doctor {}",
-//                    appointment.getId(), patient.getId(), doctor.getId());
-//
-//            return appointmentMapper.toResponse(appointment);
-//
-//        } catch (CustomException e) {
-//            log.error("Appointment creation failed: {} - {}", e.getErrorCode().getCode(), e.getMessage());
-//            throw e;
-//        } catch (Exception e) {
-//            log.error("Unexpected error during appointment creation", e);
-//            throw new CustomException(ErrorCode.APPOINTMENT_CREATION_FAILED);
-//        }
-//    }
+    @Transactional
+    @Override
+    public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
+        String sagaId = UUID.randomUUID().toString();
+        log.info("Khởi tạo Saga tạo appointment: sagaId={}", sagaId);
 
-//    @Override
-//    public PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable) {
+        // Tạo Appointment với trạng thái chờ xác thực
+        Appointment appointment = Appointment.builder()
+                .doctorUserId(request.getDoctorId())
+                .patientUserId(request.getPatientId())
+                .slotId(request.getSlotId())
+                .notes(request.getNotes())
+                .status(Status.PENDING)
+                .build();
+
+        appointment = appointmentRepository.save(appointment);
+
+        AppointmentSagaState sagaState = AppointmentSagaState.builder()
+                .sagaId(sagaId)
+                .appointmentId(appointment.getId())
+                .status(SagaStatus.STARTED)
+                .currentStep("APPOINTMENT_CREATED")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        sagaStateRepository.save(sagaState);
+
+        AppointmentCreatedEvent event = AppointmentCreatedEvent.builder()
+                .sagaId(sagaId)
+                .appointmentId(appointment.getId())
+                .doctorUserId(request.getDoctorId())
+                .patientUserId(request.getPatientId())
+                .slotId(request.getSlotId())
+                .notes(request.getNotes())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        kafkaTemplate.send("appointment-created-topic", sagaId, event);
+
+        log.info("Đã publish AppointmentCreatedEvent: sagaId={}, appointmentId={}",
+                sagaId, appointment.getId());
+
+//        return AppointmentResponse.builder()
+////                .sagaId(sagaId)
+//                .appointmentId(appointment.getId())
+//                .status(Status.IN_PROGRESS)
+////                .message("Yêu cầu đặt lịch đang được xử lý")
+//                .build();
+        return getAppointment(appointment.getId());
+
+    }
+
+    @Override
+    public AppointmentResponse getAppointment(UUID appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+
+        // Đã có đầy đủ thông tin denormalized
+        return AppointmentResponse.builder()
+                .appointmentId(appointment.getId())
+                .doctorId(appointment.getDoctorUserId())
+                .doctorName(appointment.getDoctorName())
+                .specialtyName(appointment.getSpecialtyName())
+                .patientId(appointment.getPatientUserId())
+                .patientName(appointment.getPatientName())
+                .appointmentDate(appointment.getAppointmentDate())
+                .startTime(appointment.getStartTime())
+                .endTime(appointment.getEndTime())
+                .consultationFee(appointment.getConsultationFee())
+                .status(appointment.getStatus())
+                .notes(appointment.getNotes())
+                .doctorNotes(appointment.getDoctorNotes())
+                .createdAt(appointment.getCreatedAt())
+                .updatedAt(appointment.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public boolean existsOverlappingAppointment(UUID patientId, LocalDate appointmentDate, LocalTime startTime, LocalTime endTime) {
+        return appointmentRepository.existsOverlappingAppointment(patientId, appointmentDate, startTime, endTime);
+    }
+
+    @Override
+    public long countPendingAppointmentsByPatient(UUID patientId) {
+        return appointmentRepository.countPendingAppointmentsByPatient(patientId);
+    }
+
+    @Override
+    public PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable) {
 //        try {
 //            if (userId != null) {
 //                validateUserExists(userId);
@@ -143,7 +199,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 //            log.error("Unexpected error while getting appointments", e);
 //            throw new CustomException(ErrorCode.APPOINTMENT_FETCH_FAILED);
 //        }
-//    }
+        return null;
+    }
 
 //    @Override
 //    @Transactional
@@ -323,6 +380,17 @@ public class AppointmentServiceImpl implements AppointmentService {
 //            throw new CustomException(ErrorCode.MEDICAL_RECORD_UPDATE_FAILED);
 //        }
 //    }
+
+
+    @Override
+    public List<AppointmentInternalResponse> getAffectedFullDay(UUID doctorId, LocalDate date) {
+        return List.of();
+    }
+
+    @Override
+    public List<AppointmentInternalResponse> getAffectedByTimeRange(UUID doctorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return List.of();
+    }
 
     private void validateAppointmentCanStartExamination(Appointment appointment) {
         if (appointment.getStatus() != Status.CONFIRMED) {

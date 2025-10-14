@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.common.security.util.SecurityUtils;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
@@ -13,11 +14,9 @@ import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
 import org.project.service.AppointmentService;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -77,34 +76,42 @@ public class AppointmentController {
         return ResponseEntity.ok(appointments);
     }
 
-//    @PostMapping
-//    public ResponseEntity<AppointmentResponse> createAppointment(@Valid @RequestBody CreateAppointmentRequest request) {
-//        AppointmentResponse appointmentResponse = appointmentService.createAppointment(request);
-//
-//        return ResponseEntity.status(HttpStatus.CREATED).body(appointmentResponse);
-//    }
-//
-//    @GetMapping
-//    //@RequireOwnershipOrAdmin
-//    public ResponseEntity<PageResponse<AppointmentResponse>> getAppointments(
-//            @RequestParam(required = false) UUID userId,
-//            @RequestParam(required = false) Status status,
-//            @RequestParam(defaultValue = "0") @Min(0) Integer page,
-//            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
-//            @RequestParam(defaultValue = "DESC") String sortDirection,
-//            @RequestParam(defaultValue = "appointmentDate") String sortBy) {
-//
-//        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
-//                ? Sort.Direction.ASC
-//                : Sort.Direction.DESC;
-//
-//        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-//
-//        PageResponse<AppointmentResponse> response = appointmentService.getAppointments(userId, status, pageable);
-//
-//        return ResponseEntity.ok(response);
-//    }
-//
+    @PostMapping
+    public ResponseEntity<AppointmentResponse> createAppointment(
+            @Valid @RequestBody CreateAppointmentRequest request) {
+
+        AppointmentResponse response = appointmentService.createAppointment(request);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/{appointmentId}")
+    public ResponseEntity<AppointmentResponse> getAppointment(@PathVariable UUID appointmentId) {
+
+        AppointmentResponse response = appointmentService.getAppointment(appointmentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    @RequireOwnershipOrAdmin
+    public ResponseEntity<PageResponse<AppointmentResponse>> getAppointments(
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "0") @Min(0) Integer page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @RequestParam(defaultValue = "appointmentDate") String sortBy) {
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        PageResponse<AppointmentResponse> response = appointmentService.getAppointments(userId, status, pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
 //    @PutMapping("/{appointmentId}/status")
 //    @PreAuthorize("hasRole('ADMIN')")
 //    public ResponseEntity<AppointmentResponse> updateAppointmentStatus(
@@ -120,8 +127,8 @@ public class AppointmentController {
 //
 //        return ResponseEntity.ok(response);
 //    }
-//
-//
+
+
 //    @PutMapping("/{appointmentId}/complete")
 //    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
 //    public ResponseEntity<AppointmentResponse> completeAppointment(

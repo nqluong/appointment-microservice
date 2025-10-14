@@ -11,6 +11,7 @@ import org.project.enums.Status;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -28,12 +29,36 @@ public class Appointment {
     @Column(name = "doctor_user_id", nullable = false)
     UUID doctorUserId;
 
+    @Column(name = "doctor_name")
+    String doctorName;
+
+    @Column(name = "doctor_email")
+    String doctorEmail;
+
+    @Column(name = "specialty_name")
+    String specialtyName;
+
     @Column(name = "patient_user_id", nullable = false)
     UUID patientUserId;
 
-    @NotNull(message = "Appointment date is required")
-    @Column(name = "appointment_date", nullable = false)
+    @Column(name = "patient_name")
+    String patientName;
+
+    @Column(name = "patient_email")
+    String patientEmail;
+
+    @Column(name = "patient_phone")
+    String patientPhone;
+
+
+    @Column(name = "appointment_date")
     LocalDate appointmentDate;
+
+    @Column(name = "start_time")
+    LocalTime startTime;
+
+    @Column(name = "end_time")
+    LocalTime endTime;
 
     @Column(name = "slot_id")
     UUID slotId;

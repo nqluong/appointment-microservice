@@ -13,9 +13,51 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      default-topic: appointmentTopic
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 2
+      properties:
+        enable.idempotence: true
+
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+
+kafka:
+  topics:
+    # Topics mà service này publish
+    appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
+    appointment-confirmed: ${APPOINTMENT_CONFIRMED_TOPIC:appointment-confirmed-topic}
+    appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled-topic}
+
+    # Topics mà service này consume
+    slot-reserved: ${SLOT_RESERVED_TOPIC:slot-reserved-topic}
+    patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
+    doctor-validated: ${DOCTOR_VALIDATED_TOPIC:doctor-validated-topic}
+    validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
+
 server:
   port: 0
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+services:
+  scheduling:
+    url: http://scheduling-service
+  userprofile:
+    url: http://userprofile-service
+  auth-service:
+    url: http://auth-service

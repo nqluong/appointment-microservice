@@ -14,14 +14,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "doctor_available_slots")
-@Getter
-@Setter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@ToString(exclude = {"doctor"})
-@EqualsAndHashCode(exclude = {"doctor"})
 public class DoctorAvailableSlot {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -52,4 +49,15 @@ public class DoctorAvailableSlot {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version")
+    Long version;
+
+    @Column(name = "reserved_by")
+    UUID reservedBy;
+
+    @Column(name = "reserved_at")
+    LocalDateTime reservedAt;
+
 }

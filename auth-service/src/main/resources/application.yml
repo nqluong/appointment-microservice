@@ -14,6 +14,33 @@ spring:
       hibernate:
         format_sql: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+
+kafka:
+  topics:
+    patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
+    validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
+
+    slot-reserved: ${SLOT_RESERVED_TOPIC:slot-reserved-topic}
+
 jwt:
   signer-key: "${SECRET_KEY_JWT}"
   expiration: 3600 # in seconds
@@ -38,3 +65,9 @@ app:
   upload:
     dir: uploads/avatars
     max-size: 5242880 # 5MB
+
+service:
+  user-profile:
+    url: http://userprofile-service
+  appointment:
+    url: http://appointment-service

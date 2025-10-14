@@ -23,20 +23,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
 
      //Kiểm tra xem bệnh nhân có lịch hẹn trùng thời gian không
-//    @Query("""
-//        SELECT COUNT(a) > 0 FROM Appointment a
-//        JOIN a.slot s
-//        WHERE a.patient.id = :patientId
-//        AND s.slotDate = :appointmentDate
-//        AND ((s.startTime <= :endTime AND s.endTime > :startTime))
-//        AND a.status IN ('PENDING', 'CONFIRMED')
-//        """)
-//    boolean existsOverlappingAppointment(
-//            @Param("patientId") UUID patientId,
-//            @Param("appointmentDate") LocalDate appointmentDate,
-//            @Param("startTime") LocalTime startTime,
-//            @Param("endTime") LocalTime endTime
-//    );
+     @Query("""
+            SELECT COUNT(a) > 0 FROM Appointment a
+            WHERE a.patientUserId = :patientId
+            AND a.appointmentDate = :appointmentDate
+            AND a.status IN ('PENDING', 'CONFIRMED')
+            AND (
+                (a.startTime < :endTime AND a.endTime > :startTime)
+            )
+        """)
+    boolean existsOverlappingAppointment(
+            @Param("patientId") UUID patientId,
+            @Param("appointmentDate") LocalDate appointmentDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
 
      //Đếm số lượng lịch hẹn đang pending của bệnh nhân
     @Query("""

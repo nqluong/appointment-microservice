@@ -51,7 +51,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler))
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/profiles/public/**").permitAll()
+                        .requestMatchers("/api/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthenticationFilter,

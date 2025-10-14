@@ -30,6 +30,7 @@ public class AppointmentResponse {
     BigDecimal consultationFee;
     Status status;
     String notes;
+    String doctorNotes;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

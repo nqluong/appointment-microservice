@@ -58,6 +58,7 @@ public class SecurityConfig {
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/profiles/public/**").permitAll()
+                        .requestMatchers("/api/internal/**").permitAll()
                         .requestMatchers(HttpMethod.GET, GET_PUBLIC).permitAll()
                         .anyRequest().authenticated()
                 )

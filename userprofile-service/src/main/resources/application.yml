@@ -13,6 +13,36 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+
+kafka:
+  topics:
+    #publish
+    doctor-validated: ${DOCTOR_VALIDATED_TOPIC:doctor-validated-topic}
+    validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
+
+    #consumer
+    patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
+
 server:
   port: 0
 eureka:

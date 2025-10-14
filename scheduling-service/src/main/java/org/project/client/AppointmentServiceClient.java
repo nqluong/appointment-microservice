@@ -20,46 +20,48 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
-public class AppointmentServiceClient {
 
-    private final RestTemplate restTemplate;
+@Slf4j
+public class AppointmentServiceClient extends BaseServiceClient {
+
 
     @Value("@{service.appointment-service.url}")
     private String appointmentUrl;
+
+    public AppointmentServiceClient(RestTemplate restTemplate) {
+        super(restTemplate);
+    }
+
+    @Override
+    protected String getServiceName() {
+        return "Appointment-Service";
+    }
 
     public List<AppointmentResponse> findAppointmentsByDoctorAndFullDay(
             UUID doctorId,
             LocalDate date,
             List<Status> statuses) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(appointmentUrl + "/api/appointments/affected/full-day")
+                .queryParam("doctorId", doctorId)
+                .queryParam("date", date);
+
+        if (statuses != null && !statuses.isEmpty()) {
+            List<String> statusNames = statuses.stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toList());
+            builder.queryParam("statuses", String.join(",", statusNames));
+        }
+
+        String url = builder.toUriString();
+
         try {
-            UriComponentsBuilder builder = UriComponentsBuilder
-                    .fromHttpUrl(appointmentUrl + "/api/appointments/affected/full-day")
-                    .queryParam("doctorId", doctorId)
-                    .queryParam("date", date);
-
-            if (statuses != null && !statuses.isEmpty()) {
-                List<String> statusNames = statuses.stream()
-                        .map(Enum::name)
-                        .collect(Collectors.toList());
-                builder.queryParam("statuses", String.join(",", statusNames));
-            }
-
-            String url = builder.toUriString();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<List<AppointmentResponse>> response = restTemplate.exchange(
+            List<AppointmentResponse> appointments = get(
                     url,
-                    HttpMethod.GET,
-                    entity,
                     new ParameterizedTypeReference<List<AppointmentResponse>>() {}
             );
 
-            return response.getBody() != null ? response.getBody() : Collections.emptyList();
+            return appointments != null ? appointments : Collections.emptyList();
 
         } catch (Exception e) {
             log.error("Lỗi khi gọi appointment service (full day): {}", e.getMessage(), e);
@@ -67,40 +69,37 @@ public class AppointmentServiceClient {
         }
     }
 
-    public List<AppointmentResponse>findAffectedAppointments(
+    public List<AppointmentResponse> findAffectedAppointments(
             UUID doctorId,
             LocalDate date,
             LocalTime startTime,
             LocalTime endTime,
             List<Status> statuses) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(appointmentUrl + "/api/internal/appointments/affected/time-range")
+                .queryParam("doctorId", doctorId)
+                .queryParam("date", date)
+                .queryParam("startTime", startTime)
+                .queryParam("endTime", endTime);
+
+        if (statuses != null && !statuses.isEmpty()) {
+            List<String> statusNames = statuses.stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toList());
+            builder.queryParam("statuses", String.join(",", statusNames));
+        }
+        String url = builder.toUriString();
+
         try {
-            UriComponentsBuilder builder = UriComponentsBuilder
-                    .fromHttpUrl(appointmentUrl + "/api/internal/appointments/affected/time-range")
-                    .queryParam("doctorId", doctorId)
-                    .queryParam("date", date)
-                    .queryParam("startTime", startTime)
-                    .queryParam("endTime", endTime);
 
-            if (statuses != null && !statuses.isEmpty()) {
-                List<String> statusNames = statuses.stream()
-                        .map(Enum::name)
-                        .collect(Collectors.toList());
-                builder.queryParam("statuses", String.join(",", statusNames));
-            }
-            String url = builder.toUriString();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<List<AppointmentResponse>> response = restTemplate.exchange(
+            List<AppointmentResponse> appointments = get(
                     url,
-                    HttpMethod.GET,
-                    entity,
                     new ParameterizedTypeReference<List<AppointmentResponse>>() {}
             );
 
-            return response.getBody() != null ? response.getBody() : Collections.emptyList();
+            return appointments != null ? appointments : Collections.emptyList();
+
+
         } catch (Exception e) {
             log.error("Lỗi khi gọi appointment service để tìm affected appointments: {}", e.getMessage(), e);
             return Collections.emptyList();

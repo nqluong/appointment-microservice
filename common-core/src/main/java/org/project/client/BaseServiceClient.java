@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.exception.ExternalServiceException;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -32,7 +33,6 @@ public abstract class BaseServiceClient {
     )
     protected <T> T get(String url, Class<T> responseType) {
         try {
-            log.debug("Calling {} - GET: {}", getServiceName(), url);
 
             ResponseEntity<T> response = restTemplate.getForEntity(url, responseType);
 
@@ -61,6 +61,48 @@ public abstract class BaseServiceClient {
         }
         return null;
     }
+
+    @Retryable(
+            value = {ResourceAccessException.class, HttpServerErrorException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    protected <T> T get(String url, ParameterizedTypeReference<T> responseType) {
+        try {
+
+            ResponseEntity<T> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    responseType
+            );
+
+            if (response.getStatusCode() != HttpStatus.OK) {
+                throw new ExternalServiceException(
+                        String.format("%s trả về status code: %s", getServiceName(), response.getStatusCode())
+                );
+            }
+
+            return response.getBody();
+
+        } catch (HttpClientErrorException e) {
+            handleHttpClientError(e);
+        } catch (HttpServerErrorException e) {
+            throw new ExternalServiceException(
+                    String.format("%s đang gặp sự cố. Vui lòng thử lại sau.", getServiceName())
+            );
+        } catch (ResourceAccessException e) {
+            throw new ExternalServiceException(
+                    String.format("Không thể kết nối đến %s", getServiceName())
+            );
+        } catch (Exception e) {
+            throw new ExternalServiceException(
+                    String.format("Lỗi không xác định khi gọi %s", getServiceName())
+            );
+        }
+        return null;
+    }
+
 
     @Retryable(
             value = {ResourceAccessException.class, HttpServerErrorException.class},
