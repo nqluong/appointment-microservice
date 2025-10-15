@@ -39,7 +39,7 @@ kafka:
     patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
     validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
 
-    slot-reserved: ${SLOT_RESERVED_TOPIC:slot-reserved-topic}
+    appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
 
 jwt:
   signer-key: "${SECRET_KEY_JWT}"

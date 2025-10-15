@@ -1,36 +1,22 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-//import org.project.appointment_project.appoinment.dto.request.CreateAppointmentRequest;
-//import org.project.appointment_project.appoinment.dto.response.AppointmentResponse;
-//import org.project.appointment_project.appoinment.enums.Status;
-//import org.project.appointment_project.appoinment.mapper.AppointmentMapper;
-//import org.project.appointment_project.appoinment.model.Appointment;
-//import org.project.appointment_project.appoinment.repository.AppointmentRepository;
-//import org.project.appointment_project.appoinment.service.AppointmentService;
-//import org.project.appointment_project.appoinment.service.AppointmentValidationService;
-//import org.project.appointment_project.common.dto.PageResponse;
-//import org.project.appointment_project.common.exception.CustomException;
-//import org.project.appointment_project.common.exception.ErrorCode;
-//import org.project.appointment_project.common.mapper.PageMapper;
-//import org.project.appointment_project.medicalrecord.dto.request.CreateMedicalRecordRequest;
-//import org.project.appointment_project.medicalrecord.dto.request.UpdateMedicalRecordRequest;
-//import org.project.appointment_project.medicalrecord.dto.response.MedicalRecordResponse;
-//import org.project.appointment_project.medicalrecord.service.MedicalRecordService;
-//import org.project.appointment_project.schedule.model.DoctorAvailableSlot;
-//import org.project.appointment_project.schedule.repository.DoctorAvailableSlotRepository;
-//import org.project.appointment_project.schedule.service.SlotStatusService;
-//import org.project.appointment_project.user.model.User;
-//import org.project.appointment_project.user.repository.UserRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+
+import org.project.client.SchedulingServiceClient;
+import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.PageResponse;
 import org.project.dto.events.AppointmentCreatedEvent;
 import org.project.dto.request.CreateAppointmentRequest;
+import org.project.dto.request.SlotReservationRequest;
 import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
+import org.project.dto.response.SlotDetailsResponse;
+import org.project.dto.response.SlotReservationResponse;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
 import org.project.exception.CustomException;
@@ -48,12 +34,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -64,8 +48,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     AppointmentRepository appointmentRepository;
     SagaStateRepository sagaStateRepository;
     KafkaTemplate<String, Object> kafkaTemplate;
+    SchedulingServiceClient schedulingServiceClient;
+    AppointmentKafkaTopics topics;
 
-//    AppointmentValidationService validationService;
     PageMapper pageMapper;
     AppointmentMapper appointmentMapper;
 
@@ -93,57 +78,116 @@ public class AppointmentServiceImpl implements AppointmentService {
         return pageMapper.toPageResponse(appointments,appointmentMapper::toDto);
     }
 
-    //Tạo lịch hẹn mới vả xử lý transaction, lock
+    //Tạo lịch hẹn mới với SYNC validation và ASYNC saga
     @Transactional
     @Override
     public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
         String sagaId = UUID.randomUUID().toString();
-        log.info("Khởi tạo Saga tạo appointment: sagaId={}", sagaId);
+        log.info("Bắt đầu tạo appointment: sagaId={}", sagaId);
 
-        // Tạo Appointment với trạng thái chờ xác thực
+        // Kiểm tra slot có tồn tại và còn available không (SYNC)
+        log.info("SYNC: Kiểm tra slot {} available", request.getSlotId());
+        SlotDetailsResponse slotDetails = schedulingServiceClient.getSlotDetails(request.getSlotId());
+        
+        if (slotDetails == null) {
+            log.error("Slot không tồn tại: {}", request.getSlotId());
+            throw new CustomException(ErrorCode.SLOT_NOT_FOUND);
+        }
+        
+        if (!slotDetails.isAvailable()) {
+            log.error("Slot đã được đặt: {}", request.getSlotId());
+            throw new CustomException(ErrorCode.SLOT_NOT_AVAILABLE);
+        }
+        
+        // Validate slot thuộc đúng doctor
+        if (!slotDetails.getDoctorId().equals(request.getDoctorId())) {
+            log.error("Slot không thuộc bác sĩ này");
+            throw new CustomException(ErrorCode.INVALID_SLOT_DOCTOR);
+        }
+        
+        // Validate slot chưa qua thời gian
+        LocalDateTime slotDateTime = LocalDateTime.of(slotDetails.getSlotDate(), slotDetails.getStartTime());
+        if (slotDateTime.isBefore(LocalDateTime.now())) {
+            log.error("Slot đã qua thời gian");
+            throw new CustomException(ErrorCode.SLOT_IN_PAST);
+        }
+        
+        // 2. Kiểm tra patient có appointment trùng thời gian không (SYNC)
+        log.info("SYNC: Kiểm tra overlapping appointment cho patient {}", request.getPatientId());
+        boolean hasOverlapping = appointmentRepository.existsOverlappingAppointment(
+                request.getPatientId(),
+                slotDetails.getSlotDate(),
+                slotDetails.getStartTime(),
+                slotDetails.getEndTime()
+        );
+        
+        if (hasOverlapping) {
+            log.error("Patient đã có lịch hẹn trùng thời gian");
+            throw new CustomException(ErrorCode.PATIENT_OVERLAPPING_APPOINTMENT);
+        }
+        
+        // 3. Reserve slot ngay lập tức (SYNC)
+        log.info("SYNC: Reserve slot {}", request.getSlotId());
+        SlotReservationRequest reservationRequest = SlotReservationRequest.builder()
+                .slotId(request.getSlotId())
+                .doctorId(request.getDoctorId())
+                .patientId(request.getPatientId())
+                .build();
+        
+        SlotReservationResponse reservationResponse = schedulingServiceClient.reserveSlot(reservationRequest);
+        
+        if (!reservationResponse.isSuccess()) {
+            log.error("Không thể reserve slot: {}", reservationResponse.getMessage());
+            throw new CustomException(ErrorCode.SLOT_ALREADY_BOOKED);
+        }
+        
+        // Tạo Appointment với thông tin đầy đủ từ slot
         Appointment appointment = Appointment.builder()
                 .doctorUserId(request.getDoctorId())
                 .patientUserId(request.getPatientId())
                 .slotId(request.getSlotId())
+                .appointmentDate(slotDetails.getSlotDate())
+                .startTime(slotDetails.getStartTime())
+                .endTime(slotDetails.getEndTime())
+                .consultationFee(slotDetails.getConsultationFee())
                 .notes(request.getNotes())
                 .status(Status.PENDING)
                 .build();
 
         appointment = appointmentRepository.save(appointment);
+        log.info("Đã tạo appointment: id={}", appointment.getId());
 
         AppointmentSagaState sagaState = AppointmentSagaState.builder()
                 .sagaId(sagaId)
                 .appointmentId(appointment.getId())
-                .status(SagaStatus.STARTED)
-                .currentStep("APPOINTMENT_CREATED")
+                .status(SagaStatus.SLOT_RESERVED)
+                .currentStep("SLOT_RESERVED")
                 .createdAt(LocalDateTime.now())
                 .build();
 
         sagaStateRepository.save(sagaState);
 
+        // Publish event để bắt đầu async validation (patient, doctor, payment...)
         AppointmentCreatedEvent event = AppointmentCreatedEvent.builder()
                 .sagaId(sagaId)
                 .appointmentId(appointment.getId())
                 .doctorUserId(request.getDoctorId())
                 .patientUserId(request.getPatientId())
                 .slotId(request.getSlotId())
+                .appointmentDate(slotDetails.getSlotDate())
+                .startTime(slotDetails.getStartTime())
+                .endTime(slotDetails.getEndTime())
                 .notes(request.getNotes())
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send("appointment-created-topic", sagaId, event);
+        kafkaTemplate.send(topics.getAppointmentCreated(), sagaId, event);
 
-        log.info("Đã publish AppointmentCreatedEvent: sagaId={}, appointmentId={}",
+        log.info("Đã publish AppointmentCreatedEvent cho async validation: sagaId={}, appointmentId={}",
                 sagaId, appointment.getId());
 
-//        return AppointmentResponse.builder()
-////                .sagaId(sagaId)
-//                .appointmentId(appointment.getId())
-//                .status(Status.IN_PROGRESS)
-////                .message("Yêu cầu đặt lịch đang được xử lý")
-//                .build();
+        // Trả về response ngay với thông tin appointment đã được tạo
         return getAppointment(appointment.getId());
-
     }
 
     @Override

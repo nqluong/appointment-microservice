@@ -94,7 +94,7 @@ public enum ErrorCode {
     DUPLICATE_SLOT_IDS(7010, "Tìm thấy các ID khung giờ khám trùng lặp", HttpStatus.NOT_FOUND),
 
     // Lỗi đặt lịch hẹn
-    SLOT_ALREADY_BOOKED(8001, "Khung giờ đã chọn đã được bệnh nhân khác đặt", HttpStatus.CONFLICT),
+    SLOT_ALREADY_BOOKED(8001, "Khung giờ chọn đã được bệnh nhân khác đặt", HttpStatus.CONFLICT),
     INVALID_SLOT_DOCTOR(8002, "Khung giờ đã chọn không thuộc về bác sĩ đã chọn", HttpStatus.BAD_REQUEST),
     PATIENT_NOT_FOUND(8003, "Bệnh nhân không tồn tại", HttpStatus.NOT_FOUND),
     PATIENT_INACTIVE(8004, "Tài khoản bệnh nhân không hoạt động", HttpStatus.BAD_REQUEST),

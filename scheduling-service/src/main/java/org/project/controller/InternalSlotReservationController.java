@@ -1,18 +1,22 @@
 package org.project.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.project.dto.request.ConfirmReservationRequest;
-import org.project.dto.request.SlotReleaseRequest;
+import java.util.UUID;
+
 import org.project.dto.request.SlotReservationRequest;
 import org.project.dto.response.SlotDetailsResponse;
 import org.project.dto.response.SlotReservationResponse;
 import org.project.service.SlotStatusService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/internal/slots")
@@ -22,7 +26,7 @@ public class InternalSlotReservationController {
     private final SlotStatusService slotStatusService;
 
     /**
-     * Reserve slot (được gọi từ Appointment Service)
+     * Reserve slot (SYNC call từ Appointment Service)
      */
     @PostMapping("/reserve")
     public ResponseEntity<SlotReservationResponse> reserveSlot(
@@ -30,7 +34,7 @@ public class InternalSlotReservationController {
 
         log.info("Received slot reservation request for slot {}", request.getSlotId());
 
-        SlotReservationResponse response = slotStatusService.reserveSlotWithIdempotency(request);
+        SlotReservationResponse response = slotStatusService.reserveSlot(request);
 
         return ResponseEntity.ok(response);
     }
@@ -38,27 +42,12 @@ public class InternalSlotReservationController {
     /**
      * Release slot (compensation từ Appointment Service)
      */
-    @PostMapping("/release")
-    public ResponseEntity<Void> releaseSlot(
-            @Valid @RequestBody SlotReleaseRequest request) {
+    @PostMapping("/release/{slotId}")
+    public ResponseEntity<Void> releaseSlot(@PathVariable UUID slotId) {
 
-        log.info("Received slot release request for slot {}", request.getSlotId());
+        log.info("Received slot release request for slot {}", slotId);
 
-        slotStatusService.releaseSlotWithIdempotency(request.getSlotId(), request.getIdempotencyKey());
-
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * Confirm reservation (sau khi appointment created)
-     */
-    @PostMapping("/confirm")
-    public ResponseEntity<Void> confirmReservation(
-            @Valid @RequestBody ConfirmReservationRequest request) {
-
-        log.info("Confirming reservation for slot {}", request.getSlotId());
-
-        slotStatusService.confirmReservation(request.getSlotId(), request.getIdempotencyKey());
+        slotStatusService.releaseSlot(slotId);
 
         return ResponseEntity.ok().build();
     }

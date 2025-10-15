@@ -1,9 +1,13 @@
 package org.project.dto.request;
 
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.util.UUID;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
@@ -14,5 +18,4 @@ public class SlotReservationRequest {
     UUID slotId;
     UUID doctorId;
     UUID patientId;
-    String idempotencyKey;
 }

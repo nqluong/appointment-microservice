@@ -1,16 +1,27 @@
 package org.project.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "doctor_available_slots")
@@ -39,6 +50,7 @@ public class DoctorAvailableSlot {
     @Column(name = "end_time", nullable = false)
     LocalTime endTime;
 
+    @Builder.Default
     @Column(name = "is_available", nullable = false)
     boolean isAvailable = true;
 
@@ -53,11 +65,5 @@ public class DoctorAvailableSlot {
     @Version
     @Column(name = "version")
     Long version;
-
-    @Column(name = "reserved_by")
-    UUID reservedBy;
-
-    @Column(name = "reserved_at")
-    LocalDateTime reservedAt;
 
 }

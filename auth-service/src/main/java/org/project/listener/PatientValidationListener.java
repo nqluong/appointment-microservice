@@ -1,14 +1,12 @@
 package org.project.listener;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+
 import org.project.client.AppointmentValidationClient;
 import org.project.client.UserProfileServiceClient;
 import org.project.config.AuthKafkaTopics;
+import org.project.dto.events.AppointmentCreatedEvent;
 import org.project.dto.events.PatientValidatedEvent;
-import org.project.dto.events.SlotReservedEvent;
 import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.UserProfileResponse;
 import org.project.model.User;
@@ -19,7 +17,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -33,15 +34,15 @@ public class PatientValidationListener {
     AuthKafkaTopics topics;
 
     @KafkaListener(
-            topics = "#{@authKafkaTopics.slotReserved}",
+            topics = "#{@authKafkaTopics.appointmentCreated}",
             groupId = "auth-service"
     )
     @Transactional
-    public void handleSlotReserved(SlotReservedEvent event) {
-        log.info("Nhận SlotReservedEvent để validate patient: sagaId={}", event.getSagaId());
+    public void handleAppointmentCreated(AppointmentCreatedEvent event) {
+        log.info("Nhận AppointmentCreatedEvent để validate patient: sagaId={}", event.getSagaId());
 
         try {
-            User patient = userRepository.findById(event.getReservedBy())
+            User patient = userRepository.findById(event.getPatientUserId())
                     .orElseThrow(() -> new RuntimeException("Patient không tồn tại"));
 
             // Validate patient active
@@ -59,17 +60,9 @@ public class PatientValidationListener {
                 return;
             }
 
-            boolean hasOverlapping = appointmentValidationClient
-                    .checkOverlappingAppointment(event.getReservedBy(), event.getAppointmentDate(), event.getStartTime(), event.getEndTime());
-
-            if (hasOverlapping) {
-                publishValidationFailed(event, "Patient đã có lịch hẹn trùng giờ");
-                return;
-            }
-
             // Check pending limit
             int pendingCount = appointmentValidationClient
-                    .countPendingAppointments(event.getReservedBy());
+                    .countPendingAppointments(event.getPatientUserId());
 
             if (pendingCount >= 3) {
                 publishValidationFailed(event, "Patient đã có quá nhiều lịch hẹn pending");
@@ -77,7 +70,7 @@ public class PatientValidationListener {
             }
 
             UserProfileResponse patientProfile = userProfileServiceClient
-                    .getUserProfile(event.getReservedBy());
+                    .getUserProfile(event.getPatientUserId());
 
             String patientFullName;
             String patientPhone = null;
@@ -95,7 +88,7 @@ public class PatientValidationListener {
             PatientValidatedEvent validatedEvent = PatientValidatedEvent.builder()
                     .sagaId(event.getSagaId())
                     .appointmentId(event.getAppointmentId())
-                    .patientUserId(event.getReservedBy())
+                    .patientUserId(event.getPatientUserId())
                     .patientEmail(patient.getEmail())
                     .patientName(patientFullName)
                     .patientPhone(patientPhone)
@@ -105,15 +98,15 @@ public class PatientValidationListener {
 
             kafkaTemplate.send(topics.getPatientValidated(), event.getSagaId(), validatedEvent);
 
-            log.info("Patient đã được validate: userId={}", event.getReservedBy());
+            log.info("Patient đã được validate: userId={}", event.getPatientUserId());
 
         } catch (Exception e) {
-            log.error("Lỗi khi validate patient");
+            log.error("Lỗi khi validate patient", e);
             publishValidationFailed(event, "Lỗi hệ thống khi validate patient");
         }
     }
 
-    private void publishValidationFailed(SlotReservedEvent event, String reason) {
+    private void publishValidationFailed(AppointmentCreatedEvent event, String reason) {
         ValidationFailedEvent failedEvent = ValidationFailedEvent.builder()
                 .sagaId(event.getSagaId())
                 .appointmentId(event.getAppointmentId())

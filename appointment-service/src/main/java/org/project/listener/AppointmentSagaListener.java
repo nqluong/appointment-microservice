@@ -1,11 +1,12 @@
 package org.project.listener;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+
 import org.project.config.AppointmentKafkaTopics;
-import org.project.dto.events.*;
+import org.project.dto.events.AppointmentCancelledEvent;
+import org.project.dto.events.DoctorValidatedEvent;
+import org.project.dto.events.PatientValidatedEvent;
+import org.project.dto.events.ValidationFailedEvent;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
 import org.project.exception.CustomException;
@@ -19,8 +20,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -32,20 +35,7 @@ public class AppointmentSagaListener {
     KafkaTemplate<String, Object> kafkaTemplate;
     AppointmentKafkaTopics topics;
 
-    // Lắng nghe khi slot được reserve thành công
-    @KafkaListener(
-            topics = "#{@appointmentKafkaTopics.slotReserved}",
-            groupId = "appointment-service"
-    )
-    @Transactional
-    public void handleSlotReserved(SlotReservedEvent event) {
-        log.info("Nhận SlotReservedEvent: sagaId={}", event.getSagaId());
-
-        updateSagaState(event.getSagaId(), SagaStatus.SLOT_RESERVED, "SLOT_RESERVED");
-
-    }
-
-    // Lắng nghe các lỗi validation để compensate
+    // các lỗi validation để compensate
     @KafkaListener(
             topics = "#{@appointmentKafkaTopics.validationFailed}",
             groupId = "appointment-service"
@@ -131,15 +121,6 @@ public class AppointmentSagaListener {
 
         log.info("Appointment đã được confirm với đầy đủ thông tin: id={}", appointment.getId());
 
-        // Publish event để scheduling service cập nhật slot
-        AppointmentConfirmedEvent confirmedEvent = AppointmentConfirmedEvent.builder()
-                .sagaId(event.getSagaId())
-                .appointmentId(event.getAppointmentId())
-                .slotId(appointment.getSlotId())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        kafkaTemplate.send(topics.getAppointmentConfirmed(), event.getSagaId(), confirmedEvent);
     }
 
     private void updateSagaState(String sagaId, SagaStatus status, String step) {

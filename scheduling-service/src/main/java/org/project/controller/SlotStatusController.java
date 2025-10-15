@@ -53,21 +53,21 @@ public class SlotStatusController {
         return ResponseEntity.ok(responses);
     }
 
-    @PatchMapping("/{slotId}/reserve")
-    @PreAuthorize("hasRole('DOCTOR') OR hasRole('ADMIN') OR hasRole('PATIENT')")
-    public ResponseEntity<SlotStatusUpdateResponse> reserveSlot(@PathVariable UUID slotId) {
-
-        SlotStatusUpdateResponse response = slotStatusService.reserveSlot(slotId);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{slotId}/release")
-    @PreAuthorize("hasRole('DOCTOR') OR hasRole('ADMIN')")
-    public ResponseEntity<SlotStatusUpdateResponse> releaseSlot(@PathVariable UUID slotId) {
-
-        SlotStatusUpdateResponse response = slotStatusService.releaseSlot(slotId);
-
-        return ResponseEntity.ok(response);
-    }
+//    @PatchMapping("/{slotId}/reserve")
+//    @PreAuthorize("hasRole('DOCTOR') OR hasRole('ADMIN') OR hasRole('PATIENT')")
+//    public ResponseEntity<SlotStatusUpdateResponse> reserveSlot(@PathVariable UUID slotId) {
+//
+//        SlotStatusUpdateResponse response = slotStatusService.reserveSlot(slotId);
+//
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @PatchMapping("/{slotId}/release")
+//    @PreAuthorize("hasRole('DOCTOR') OR hasRole('ADMIN')")
+//    public ResponseEntity<SlotStatusUpdateResponse> releaseSlot(@PathVariable UUID slotId) {
+//
+//        SlotStatusUpdateResponse response = slotStatusService.releaseSlot(slotId);
+//
+//        return ResponseEntity.ok(response);
+//    }
 }

@@ -105,6 +105,10 @@ public class DoctorValidationListener {
                     .timestamp(LocalDateTime.now())
                     .build();
 
+//            if(true){
+//                throw new CustomException("Thử lỗi khi validate doctor");
+//            }
+
             kafkaTemplate.send(topics.getDoctorValidated(), event.getSagaId(), validatedEvent);
 
             log.info("Doctor đã được validate: userId={}", doctorUserId);
