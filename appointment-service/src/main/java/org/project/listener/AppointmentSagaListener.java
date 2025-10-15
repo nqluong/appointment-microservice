@@ -35,7 +35,7 @@ public class AppointmentSagaListener {
     KafkaTemplate<String, Object> kafkaTemplate;
     AppointmentKafkaTopics topics;
 
-    // các lỗi validation để compensate
+
     @KafkaListener(
             topics = "#{@appointmentKafkaTopics.validationFailed}",
             groupId = "appointment-service"
@@ -58,7 +58,6 @@ public class AppointmentSagaListener {
         appointment.setStatus(Status.CANCELLED);
         appointmentRepository.save(appointment);
 
-        // Publish compensation event để release slot
         AppointmentCancelledEvent cancelEvent = AppointmentCancelledEvent.builder()
                 .sagaId(event.getSagaId())
                 .appointmentId(event.getAppointmentId())
@@ -93,7 +92,7 @@ public class AppointmentSagaListener {
 
         appointmentRepository.save(appointment);
 
-        log.info("Đã cập nhật thông tin patient vào appointment: {}", appointment.getId());
+        log.info("Đã enrich thông tin patient vào appointment: {}", appointment.getId());
     }
 
     @KafkaListener(
@@ -104,22 +103,20 @@ public class AppointmentSagaListener {
     public void handleDoctorValidated(DoctorValidatedEvent event) {
         log.info("Nhận DoctorValidatedEvent: sagaId={}", event.getSagaId());
 
-        // Cập nhật saga state
         updateSagaState(event.getSagaId(), SagaStatus.COMPLETED, "COMPLETED");
 
-        // CẬP NHẬT THÔNG TIN DOCTOR VÀ CONFIRM APPOINTMENT
         Appointment appointment = appointmentRepository.findById(event.getAppointmentId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
 
+        // Enrich doctor information (consultationFee đã được set SYNC khi tạo appointment)
         appointment.setDoctorName(event.getDoctorName());
         appointment.setDoctorEmail(event.getDoctorEmail());
         appointment.setSpecialtyName(event.getSpecialtyName());
-        appointment.setConsultationFee(event.getConsultationFee());
-        appointment.setStatus(Status.CONFIRMED);
+        // appointment.setConsultationFee() - Không cần set vì đã có từ lúc tạo appointment (SYNC)
 
         appointmentRepository.save(appointment);
 
-        log.info("Appointment đã được confirm với đầy đủ thông tin: id={}", appointment.getId());
+        log.info("Appointment đã được enrich đầy đủ thông tin doctor: id={}", appointment.getId());
 
     }
 

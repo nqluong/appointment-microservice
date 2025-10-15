@@ -46,6 +46,8 @@ kafka:
     patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
     doctor-validated: ${DOCTOR_VALIDATED_TOPIC:doctor-validated-topic}
     validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
+    payment-completed: ${PAYMENT_COMPLETED_TOPIC:payment-completed-topic}
+    payment-failed: ${PAYMENT_FAILED_TOPIC:payment-failed-topic}
 
 server:
   port: 0
@@ -61,3 +63,5 @@ services:
     url: http://userprofile-service
   auth-service:
     url: http://auth-service
+  payment:
+    url: http://payment-service

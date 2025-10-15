@@ -1,9 +1,8 @@
 package org.project.listener;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.project.client.AuthServiceClient;
 import org.project.config.UserProfileKafkaTopics;
 import org.project.dto.events.DoctorValidatedEvent;
@@ -11,7 +10,6 @@ import org.project.dto.events.PatientValidatedEvent;
 import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.MedicalProfileResponse;
 import org.project.dto.response.UserBasicInfoResponse;
-import org.project.exception.CustomException;
 import org.project.model.Specialty;
 import org.project.model.UserProfile;
 import org.project.repository.MedicalProfileRepository;
@@ -22,8 +20,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -43,24 +43,12 @@ public class DoctorValidationListener {
     )
     @Transactional
     public void handlePatientValidated(PatientValidatedEvent event) {
-        log.info("Nhận PatientValidatedEvent để validate doctor: sagaId={}", event.getSagaId());
+        log.info("Nhận PatientValidatedEvent để enrich doctor info: sagaId={}", event.getSagaId());
 
         try {
             UUID doctorUserId = event.getDoctorUserId();
-            log.info("Doctor User ID : {}", doctorUserId);
+
             UserBasicInfoResponse doctorUser = authServiceClient.getUserBasicInfo(doctorUserId);
-
-            if (!doctorUser.isActive()) {
-                publishValidationFailed(event, "Bác sĩ không hoạt động");
-                return;
-            }
-
-            // Kiểm tra doctor role
-            boolean hasDoctorRole = authServiceClient.hasRole(doctorUserId, "DOCTOR");
-            if (!hasDoctorRole) {
-                publishValidationFailed(event, "User không có role DOCTOR");
-                return;
-            }
 
             UserProfile doctorProfile = userProfileRepository.findByUserId(doctorUserId)
                     .orElse(null);
@@ -81,16 +69,10 @@ public class DoctorValidationListener {
                     .findByUserId(doctorUserId)
                     .orElseThrow(() -> new RuntimeException("Bác sĩ chưa có hồ sơ y khoa"));
 
-            if (!medicalProfile.isDoctorApproved()) {
-                publishValidationFailed(event, "Bác sĩ chưa được phê duyệt");
-                return;
-            }
-
             String specialtyName = specialtyRepository.findById(medicalProfile.getSpecialtyId())
                     .map(Specialty::getName)
                     .orElse("Không xác định");
 
-            // Publish success với consultation fee
             DoctorValidatedEvent validatedEvent = DoctorValidatedEvent.builder()
                     .sagaId(event.getSagaId())
                     .appointmentId(event.getAppointmentId())
@@ -101,21 +83,14 @@ public class DoctorValidationListener {
                     .specialtyName(specialtyName)
                     .consultationFee(medicalProfile.getConsultationFee())
                     .timestamp(LocalDateTime.now())
-                    .consultationFee(medicalProfile.getConsultationFee())
-                    .timestamp(LocalDateTime.now())
                     .build();
-
-//            if(true){
-//                throw new CustomException("Thử lỗi khi validate doctor");
-//            }
 
             kafkaTemplate.send(topics.getDoctorValidated(), event.getSagaId(), validatedEvent);
 
-            log.info("Doctor đã được validate: userId={}", doctorUserId);
 
         } catch (Exception e) {
-            log.error("Lỗi khi validate doctor");
-            publishValidationFailed(event, "Lỗi hệ thống khi validate doctor");
+            log.error("Lỗi khi lấy doctor info", e);
+            publishValidationFailed(event, "Lỗi hệ thống khi lấy thông tin doctor");
         }
     }
 
@@ -128,7 +103,7 @@ public class DoctorValidationListener {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send("validation-failed-topic", event.getSagaId(), failedEvent);
+        kafkaTemplate.send(topics.getValidationFailed(), event.getSagaId(), failedEvent);
     }
 
 }

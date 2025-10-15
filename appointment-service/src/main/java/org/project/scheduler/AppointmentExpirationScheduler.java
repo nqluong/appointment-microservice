@@ -28,13 +28,11 @@ public class AppointmentExpirationScheduler {
 
     private static final int PENDING_TIMEOUT_MINUTES = 15;
 
-    /**
-     * Chạy mỗi 5 phút để check và cancel expired appointments
-     */
+
     @Scheduled(fixedRate = 300000) // 5 minutes
     @Transactional
     public void cancelExpiredPendingAppointments() {
-        log.debug("Running expired pending appointments cleanup...");
+        log.debug("Chạy cleanup expired pending appointments...");
 
         LocalDateTime expirationTime = LocalDateTime.now().minusMinutes(PENDING_TIMEOUT_MINUTES);
 
@@ -43,11 +41,11 @@ public class AppointmentExpirationScheduler {
                 .findExpiredPendingAppointments(expirationTime);
 
         if (expiredAppointments.isEmpty()) {
-            log.debug("No expired pending appointments found");
+            log.debug("Không tìm thấy appointments PENDING quá 15 phút");
             return;
         }
 
-        log.info("Found {} expired pending appointments to cancel", expiredAppointments.size());
+        log.info("Tìm thấy {} appointments PENDING quá 15 phút để hủy", expiredAppointments.size());
 
         for (Appointment appointment : expiredAppointments) {
             try {
@@ -58,16 +56,16 @@ public class AppointmentExpirationScheduler {
                 // Release slot
                 schedulingServiceClient.releaseSlot(appointment.getSlotId());
 
-                log.info("Cancelled expired appointment {} and released slot {}",
+                log.info("Đã hủy appointment {} và giải phóng slot {}",
                         appointment.getId(), appointment.getSlotId());
 
             } catch (Exception e) {
-                log.error("Failed to cancel expired appointment {}: {}",
+                log.error("Lỗi khi hủy appointment {}: {}",
                         appointment.getId(), e.getMessage());
             }
         }
 
-        log.info("Cancelled {} expired pending appointments", expiredAppointments.size());
+        log.info("Đã hủy {} appointments PENDING quá 15 phút", expiredAppointments.size());
     }
 }
 

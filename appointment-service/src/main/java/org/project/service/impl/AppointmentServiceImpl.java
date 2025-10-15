@@ -1,22 +1,32 @@
 package org.project.service.impl;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.project.client.AuthServiceClient;
+import org.project.client.PaymentServiceClient;
 import org.project.client.SchedulingServiceClient;
+import org.project.client.UserProfileServiceClient;
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.PageResponse;
 import org.project.dto.events.AppointmentCreatedEvent;
 import org.project.dto.request.CreateAppointmentRequest;
+import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.request.SlotReservationRequest;
 import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
+import org.project.dto.response.DoctorValidationResponse;
+import org.project.dto.response.PaymentUrlResponse;
 import org.project.dto.response.SlotDetailsResponse;
 import org.project.dto.response.SlotReservationResponse;
+import org.project.dto.response.UserValidationResponse;
+import org.project.enums.PaymentMethod;
+import org.project.enums.PaymentType;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
 import org.project.exception.CustomException;
@@ -50,6 +60,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     KafkaTemplate<String, Object> kafkaTemplate;
     SchedulingServiceClient schedulingServiceClient;
     AppointmentKafkaTopics topics;
+    AuthServiceClient authServiceClient;
+    UserProfileServiceClient userProfileServiceClient;
+    PaymentServiceClient paymentServiceClient;
 
     PageMapper pageMapper;
     AppointmentMapper appointmentMapper;
@@ -85,8 +98,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         String sagaId = UUID.randomUUID().toString();
         log.info("Bắt đầu tạo appointment: sagaId={}", sagaId);
 
-        // Kiểm tra slot có tồn tại và còn available không (SYNC)
-        log.info("SYNC: Kiểm tra slot {} available", request.getSlotId());
+        validatePatientSync(request.getPatientId());
+        DoctorValidationResponse doctorValidation = validateDoctorSync(request.getDoctorId());
+
         SlotDetailsResponse slotDetails = schedulingServiceClient.getSlotDetails(request.getSlotId());
         
         if (slotDetails == null) {
@@ -111,9 +125,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.error("Slot đã qua thời gian");
             throw new CustomException(ErrorCode.SLOT_IN_PAST);
         }
-        
-        // 2. Kiểm tra patient có appointment trùng thời gian không (SYNC)
-        log.info("SYNC: Kiểm tra overlapping appointment cho patient {}", request.getPatientId());
+
         boolean hasOverlapping = appointmentRepository.existsOverlappingAppointment(
                 request.getPatientId(),
                 slotDetails.getSlotDate(),
@@ -125,9 +137,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.error("Patient đã có lịch hẹn trùng thời gian");
             throw new CustomException(ErrorCode.PATIENT_OVERLAPPING_APPOINTMENT);
         }
-        
-        // 3. Reserve slot ngay lập tức (SYNC)
-        log.info("SYNC: Reserve slot {}", request.getSlotId());
+
         SlotReservationRequest reservationRequest = SlotReservationRequest.builder()
                 .slotId(request.getSlotId())
                 .doctorId(request.getDoctorId())
@@ -141,7 +151,14 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new CustomException(ErrorCode.SLOT_ALREADY_BOOKED);
         }
         
-        // Tạo Appointment với thông tin đầy đủ từ slot
+        // Lấy consultationFee từ doctor validation (đảm bảo không null)
+        BigDecimal consultationFee = doctorValidation.getConsultationFee();
+        if (consultationFee == null) {
+            log.error("Doctor {} không có consultation fee", request.getDoctorId());
+            throw new CustomException(ErrorCode.CONSULTATION_FEE_NOT_FOUND);
+        }
+
+        // Tạo Appointment với thông tin đầy đủ từ slot và doctor
         Appointment appointment = Appointment.builder()
                 .doctorUserId(request.getDoctorId())
                 .patientUserId(request.getPatientId())
@@ -149,7 +166,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .appointmentDate(slotDetails.getSlotDate())
                 .startTime(slotDetails.getStartTime())
                 .endTime(slotDetails.getEndTime())
-                .consultationFee(slotDetails.getConsultationFee())
+                .consultationFee(consultationFee)  // Lấy từ doctor validation
                 .notes(request.getNotes())
                 .status(Status.PENDING)
                 .build();
@@ -167,7 +184,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         sagaStateRepository.save(sagaState);
 
-        // Publish event để bắt đầu async validation (patient, doctor, payment...)
         AppointmentCreatedEvent event = AppointmentCreatedEvent.builder()
                 .sagaId(sagaId)
                 .appointmentId(appointment.getId())
@@ -183,11 +199,42 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         kafkaTemplate.send(topics.getAppointmentCreated(), sagaId, event);
 
-        log.info("Đã publish AppointmentCreatedEvent cho async validation: sagaId={}, appointmentId={}",
+        log.info("Đã publish AppointmentCreatedEvent cho async enrichment: sagaId={}, appointmentId={}",
                 sagaId, appointment.getId());
 
-        // Trả về response ngay với thông tin appointment đã được tạo
-        return getAppointment(appointment.getId());
+        PaymentUrlResponse paymentUrlResponse = createPaymentUrl(appointment.getId(), appointment.getConsultationFee());
+
+        AppointmentResponse response = getAppointment(appointment.getId());
+        response.setPaymentUrl(paymentUrlResponse.getPaymentUrl());
+        response.setPaymentId(paymentUrlResponse.getPaymentId());
+
+        return response;
+    }
+
+
+    private PaymentUrlResponse createPaymentUrl(UUID appointmentId, BigDecimal consultationFee) {
+        try {
+            CreatePaymentRequest paymentRequest = CreatePaymentRequest.builder()
+                    .appointmentId(appointmentId)
+                    .paymentType(PaymentType.FULL)
+                    .paymentMethod(PaymentMethod.VNPAY)
+                    .consultationFee(consultationFee)
+                    .notes("Thanh toán phí khám bệnh")
+                    .build();
+
+            log.info("Tạo payment URL cho appointment: {}, consultationFee: {}", appointmentId, consultationFee);
+            PaymentUrlResponse paymentUrlResponse = paymentServiceClient.createPayment(paymentRequest);
+
+            log.info("Đã tạo payment URL thành công cho appointment: {}", appointmentId);
+            return paymentUrlResponse;
+
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo payment URL cho appointment: {}", appointmentId, e);
+            return PaymentUrlResponse.builder()
+                    .paymentUrl(null)
+                    .message("Không thể tạo URL thanh toán. Vui lòng thử lại sau.")
+                    .build();
+        }
     }
 
     @Override
@@ -502,6 +549,65 @@ public class AppointmentServiceImpl implements AppointmentService {
     private Appointment getAppointmentWithLock(UUID appointmentId) {
         return appointmentRepository.findByIdWithLock(appointmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+    }
+
+
+    private void validatePatientSync(UUID patientId) {
+        UserValidationResponse validation = authServiceClient.validateUser(patientId, "PATIENT");
+        
+        if (!validation.isValid()) {
+            log.error("Patient không tồn tại: {}", patientId);
+            throw new CustomException(ErrorCode.PATIENT_NOT_FOUND);
+        }
+        
+        if (!validation.isActive()) {
+            log.error("Patient không active: {}", patientId);
+            throw new CustomException(ErrorCode.PATIENT_INACTIVE);
+        }
+        
+        if (!validation.isHasRole()) {
+            log.error("User không có role PATIENT: {}", patientId);
+            throw new CustomException(ErrorCode.PATIENT_NO_ROLE);
+        }
+        
+        log.info("Patient {} đã được validate thành công", patientId);
+    }
+
+    /**
+     * Validate doctor tồn tại, active, có role DOCTOR và đã được approve (SYNC)
+     * Trả về DoctorValidationResponse chứa consultationFee để dùng ngay
+     */
+    private DoctorValidationResponse validateDoctorSync(UUID doctorId) {
+        // Validate user tồn tại và active
+        UserValidationResponse validation = authServiceClient.validateUser(doctorId, "DOCTOR");
+        
+        if (!validation.isValid()) {
+            log.error("Doctor không tồn tại: {}", doctorId);
+            throw new CustomException(ErrorCode.DOCTOR_NOT_FOUND);
+        }
+        
+        if (!validation.isActive()) {
+            log.error("Doctor không active: {}", doctorId);
+            throw new CustomException(ErrorCode.DOCTOR_INACTIVE);
+        }
+        
+        if (!validation.isHasRole()) {
+            log.error("User không có role DOCTOR: {}", doctorId);
+            throw new CustomException(ErrorCode.DOCTOR_NOT_FOUND);
+        }
+        
+        // Validate doctor đã được approve trong medical profile
+        DoctorValidationResponse doctorValidation = userProfileServiceClient.validateDoctor(doctorId);
+        
+        if (!doctorValidation.isApproved()) {
+            log.error("Doctor chưa được approve: {}", doctorId);
+            throw new CustomException(ErrorCode.DOCTOR_NOT_APPROVED);
+        }
+        
+        log.info("Doctor {} đã được validate thành công với consultationFee: {}", 
+                doctorId, doctorValidation.getConsultationFee());
+        
+        return doctorValidation;  // Trả về để lấy consultationFee
     }
 
     private void validateStatusTransition(Status currentStatus, Status newStatus) {

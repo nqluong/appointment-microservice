@@ -8,5 +8,5 @@ import org.project.enums.PaymentType;
 import java.math.BigDecimal;
 
 public interface PaymentAmountCalculator {
-    //BigDecimal calculatePaymentAmount(Appointment appointment, PaymentType paymentType);
+    BigDecimal calculatePaymentAmount(BigDecimal consultationFee, PaymentType paymentType);
 }

@@ -101,7 +101,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/vnpay/callback")
+    @GetMapping("/public/vnpay/callback")
     public ResponseEntity<PaymentResponse> vnpayCallback(
             @RequestParam Map<String, String> params,
             HttpServletRequest request) {
@@ -114,7 +114,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/vnpay/return")
+    @PostMapping("/public/vnpay/return")
     public ResponseEntity<Map<String, Object>> vnpayReturn(
             @RequestParam Map<String, String> params) {
 
@@ -154,7 +154,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/transaction/{transactionId}/query")
+    @GetMapping("/public/transaction/{transactionId}/query")
     public ResponseEntity<PaymentResponse> queryPaymentStatusByTransactionId(
             @PathVariable String transactionId) {
 

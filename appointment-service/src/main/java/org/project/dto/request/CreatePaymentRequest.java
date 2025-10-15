@@ -3,17 +3,14 @@ package org.project.dto.request;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import org.project.enums.PaymentMethod;
-import org.project.enums.PaymentType;
-
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.project.enums.PaymentMethod;
+import org.project.enums.PaymentType;
 
 @Data
 @Builder
@@ -21,19 +18,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreatePaymentRequest {
-    @NotNull(message = "Appointment ID is required")
     UUID appointmentId;
-
-    @NotNull(message = "Payment type is required")
     PaymentType paymentType;
-
-    @NotNull(message = "Payment method is required")
     PaymentMethod paymentMethod;
-
-    @NotNull(message = "Consultation fee is required")
-    @Positive(message = "Consultation fee must be positive")
     BigDecimal consultationFee;
-
     String notes;
-
 }
+

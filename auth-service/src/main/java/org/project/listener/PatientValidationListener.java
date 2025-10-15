@@ -2,7 +2,6 @@ package org.project.listener;
 
 import java.time.LocalDateTime;
 
-import org.project.client.AppointmentValidationClient;
 import org.project.client.UserProfileServiceClient;
 import org.project.config.AuthKafkaTopics;
 import org.project.dto.events.AppointmentCreatedEvent;
@@ -10,7 +9,6 @@ import org.project.dto.events.PatientValidatedEvent;
 import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.UserProfileResponse;
 import org.project.model.User;
-import org.project.model.UserRole;
 import org.project.repository.UserRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -29,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 public class PatientValidationListener {
     UserRepository userRepository;
     KafkaTemplate<String, Object> kafkaTemplate;
-    AppointmentValidationClient appointmentValidationClient;
     UserProfileServiceClient userProfileServiceClient;
     AuthKafkaTopics topics;
 
@@ -39,35 +36,9 @@ public class PatientValidationListener {
     )
     @Transactional
     public void handleAppointmentCreated(AppointmentCreatedEvent event) {
-        log.info("Nhận AppointmentCreatedEvent để validate patient: sagaId={}", event.getSagaId());
-
         try {
             User patient = userRepository.findById(event.getPatientUserId())
                     .orElseThrow(() -> new RuntimeException("Patient không tồn tại"));
-
-            // Validate patient active
-            if (!patient.isActive()) {
-                publishValidationFailed(event, "Patient không hoạt động");
-                return;
-            }
-
-            boolean hasPatientRole = patient.getUserRoles().stream()
-                    .filter(UserRole::isActive)
-                    .anyMatch(ur -> "PATIENT".equals(ur.getRole().getName()));
-
-            if (!hasPatientRole) {
-                publishValidationFailed(event, "User không có role PATIENT");
-                return;
-            }
-
-            // Check pending limit
-            int pendingCount = appointmentValidationClient
-                    .countPendingAppointments(event.getPatientUserId());
-
-            if (pendingCount >= 3) {
-                publishValidationFailed(event, "Patient đã có quá nhiều lịch hẹn pending");
-                return;
-            }
 
             UserProfileResponse patientProfile = userProfileServiceClient
                     .getUserProfile(event.getPatientUserId());
@@ -84,7 +55,6 @@ public class PatientValidationListener {
                 patientFullName = patient.getUsername();
             }
 
-            // Publish success
             PatientValidatedEvent validatedEvent = PatientValidatedEvent.builder()
                     .sagaId(event.getSagaId())
                     .appointmentId(event.getAppointmentId())
@@ -98,11 +68,9 @@ public class PatientValidationListener {
 
             kafkaTemplate.send(topics.getPatientValidated(), event.getSagaId(), validatedEvent);
 
-            log.info("Patient đã được validate: userId={}", event.getPatientUserId());
-
         } catch (Exception e) {
-            log.error("Lỗi khi validate patient", e);
-            publishValidationFailed(event, "Lỗi hệ thống khi validate patient");
+            log.error("Lỗi khi lấy patient info", e);
+            publishValidationFailed(event, "Lỗi hệ thống khi lấy thông tin patient");
         }
     }
 

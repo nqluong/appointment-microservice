@@ -1,10 +1,17 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
+import org.project.client.AppointmentServiceClient;
+import org.project.config.PaymentKafkaTopics;
+import org.project.dto.events.PaymentCompletedEvent;
+import org.project.dto.events.PaymentFailedEvent;
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.request.PaymentCallbackRequest;
 import org.project.dto.request.PaymentRefundRequest;
@@ -18,22 +25,34 @@ import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.gateway.PaymentGateway;
 import org.project.gateway.PaymentGatewayFactory;
-import org.project.gateway.dto.*;
+import org.project.gateway.dto.PaymentGatewayRequest;
+import org.project.gateway.dto.PaymentGatewayResponse;
+import org.project.gateway.dto.PaymentRefundResult;
+import org.project.gateway.dto.PaymentVerificationResult;
+import org.project.gateway.dto.RefundRequest;
 import org.project.gateway.vnpay.config.VNPayConfig;
 import org.project.mapper.PaymentMapper;
 import org.project.model.Payment;
 import org.project.repository.PaymentRepository;
-import org.project.service.*;
+import org.project.service.AppointmentExpirationService;
+import org.project.service.OrderInfoBuilder;
+import org.project.service.PaymentAmountCalculator;
+import org.project.service.PaymentQueryService;
+import org.project.service.PaymentResolutionService;
+import org.project.service.PaymentService;
+import org.project.service.PaymentStatusHandler;
+import org.project.service.PaymentValidationService;
+import org.project.service.RefundPolicyService;
+import org.project.service.TransactionIdGenerator;
 import org.project.util.PaymentRefundUtil;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -46,10 +65,10 @@ public class PaymentServiceImpl implements PaymentService {
     PaymentValidationService validationService;
     PaymentGatewayFactory paymentGatewayFactory;
     PaymentMapper paymentMapper;
-//    AppointmentRepository appointmentRepository;
     VNPayConfig vnPayConfig;
-//    SlotStatusService slotStatusService;
-//    NotificationService notificationService;
+    KafkaTemplate<String, Object> kafkaTemplate;
+    PaymentKafkaTopics topics;
+    AppointmentServiceClient appointmentServiceClient;
 
     PaymentAmountCalculator paymentAmountCalculator;
     PaymentStatusHandler paymentStatusHandler;
@@ -67,15 +86,15 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentUrlResponse createPayment(CreatePaymentRequest request, String customerIp) {
         validationService.validateCreatePaymentRequest(request);
 
-//        Appointment appointment = findAndValidateAppointment(request.getAppointmentId());
-//
-//        BigDecimal paymentAmount = paymentAmountCalculator
-//                .calculatePaymentAmount(appointment, request.getPaymentType());
+        log.info("Tạo payment cho appointment: {}, consultationFee: {}, paymentType: {}", 
+                request.getAppointmentId(), request.getConsultationFee(), request.getPaymentType());
+
+        BigDecimal paymentAmount = paymentAmountCalculator
+                .calculatePaymentAmount(request.getConsultationFee(), request.getPaymentType());
 
         validateNoExistingPayment(request.getAppointmentId(), request.getPaymentType());
 
-//        Payment payment = createPaymentRecord(appointment, request, paymentAmount);
-        Payment payment = createPaymentRecord(request.getAppointmentId(), request, BigDecimal.valueOf(500000));
+        Payment payment = createPaymentRecord(request.getAppointmentId(), request, paymentAmount);
 
         // Tạo URL thanh toán
         String paymentUrl = generatePaymentUrl(payment, request, customerIp);
@@ -104,13 +123,57 @@ public class PaymentServiceImpl implements PaymentService {
 
         if(PaymentStatus.COMPLETED.equals(updatedPayment.getPaymentStatus())) {
             log.info("Payment completed, payment id: {}", updatedPayment.getId());
-            //notificationService.sendPaymentSuccessNotification(updatedPayment);
+            
+            // Publish PaymentCompletedEvent
+            publishPaymentCompletedEvent(updatedPayment);
+        } else if (PaymentStatus.FAILED.equals(updatedPayment.getPaymentStatus())) {
+            log.info("Payment failed, payment id: {}", updatedPayment.getId());
+            
+            // Publish PaymentFailedEvent
+            publishPaymentFailedEvent(updatedPayment, "Payment verification failed");
         }
 
         log.info("Đã xử lý phản hồi thanh toán cho ID: {}, Trạng thái: {}",
                 payment.getId(), payment.getPaymentStatus());
 
         return paymentMapper.toResponse(updatedPayment);
+    }
+    
+    /**
+     * Publish event khi payment hoàn thành thành công
+     */
+    private void publishPaymentCompletedEvent(Payment payment) {
+        PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                .paymentId(payment.getId())
+                .appointmentId(payment.getAppointmentId())
+                .amount(payment.getAmount())
+                .paymentType(payment.getPaymentType().name())
+                .paymentMethod(payment.getPaymentMethod().name())
+                .transactionId(payment.getTransactionId())
+                .gatewayTransactionId(payment.getGatewayTransactionId())
+                .paymentDate(payment.getPaymentDate())
+                .timestamp(LocalDateTime.now())
+                .build();
+                
+        kafkaTemplate.send(topics.getPaymentCompleted(), payment.getAppointmentId().toString(), event);
+        log.info("Published PaymentCompletedEvent for appointment: {}", payment.getAppointmentId());
+    }
+    
+    /**
+     * Publish event khi payment thất bại
+     */
+    private void publishPaymentFailedEvent(Payment payment, String reason) {
+        PaymentFailedEvent event = PaymentFailedEvent.builder()
+                .paymentId(payment.getId())
+                .appointmentId(payment.getAppointmentId())
+                .transactionId(payment.getTransactionId())
+                .reason(reason)
+                .failedService("payment-service")
+                .timestamp(LocalDateTime.now())
+                .build();
+                
+        kafkaTemplate.send(topics.getPaymentFailed(), payment.getAppointmentId().toString(), event);
+        log.info("Published PaymentFailedEvent for appointment: {}", payment.getAppointmentId());
     }
 
     // Xử lý hoàn tiền khi hủy

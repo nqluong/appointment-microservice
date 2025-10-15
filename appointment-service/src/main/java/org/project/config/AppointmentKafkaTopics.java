@@ -18,4 +18,6 @@ public class AppointmentKafkaTopics {
     private String patientValidated;
     private String doctorValidated;
     private String validationFailed;
+    private String paymentCompleted;
+    private String paymentFailed;
 }

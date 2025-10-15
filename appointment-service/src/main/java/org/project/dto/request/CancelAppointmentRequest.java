@@ -10,6 +10,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CancelAppointmentRequest {
-    @Size(max = 500, message = "Cancellation reason cannot exceed 500 characters")
+    @Size(max = 500, message = "Lý do hủy không được vượt quá 500 ký tự")
     String reason;
 }

@@ -1,8 +1,9 @@
 package org.project.exception;
 
+import org.springframework.http.HttpStatus;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -114,6 +115,7 @@ public enum ErrorCode {
     APPOINTMENT_COMPLETION_FAILED(8018, "Hoàn tất lịch hẹn thất bại", HttpStatus.BAD_REQUEST),
     APPOINTMENT_CANCELLATION_FAILED(8019, "Hủy lịch hẹn thất bại", HttpStatus.BAD_REQUEST),
     APPOINTMENT_CONFIRMATION_FAILED(8020, "Xác nhận lịch hẹn thất bại", HttpStatus.BAD_REQUEST),
+    CONSULTATION_FEE_NOT_FOUND(8027, "Bác sĩ chưa cấu hình phí tư vấn", HttpStatus.BAD_REQUEST),
 
     // Lỗi kiểm tra trạng thái
     INVALID_STATUS_TRANSITION(8021, "Chuyển đổi trạng thái không hợp lệ", HttpStatus.BAD_REQUEST),

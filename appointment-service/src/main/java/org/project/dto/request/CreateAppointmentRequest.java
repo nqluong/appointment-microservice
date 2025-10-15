@@ -13,15 +13,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateAppointmentRequest {
-    @NotNull(message = "Doctor ID cannot be blank")
+    @NotNull(message = "Doctor ID không được bỏ trống")
     UUID doctorId;
 
-    @NotNull(message = "Slot ID cannot be blank")
+    @NotNull(message = "Slot ID không được bỏ trống")
     UUID slotId;
 
-    @NotNull(message = "Patient ID cannot be blank")
+    @NotNull(message = "Patient ID không được bỏ trống")
     UUID patientId;
 
-    @Size(max = 500, message = "Notes must not exceed 500 characters.")
+    @Size(max = 500, message = "Notes không được vượt quá 500 ký tự")
     String notes;
 }

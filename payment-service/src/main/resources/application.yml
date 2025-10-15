@@ -15,6 +15,26 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      default-topic: paymentTopic
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 2
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+
 vnpay:
   version: "2.1.0"
   command: "pay"
@@ -35,6 +55,17 @@ payment:
     max-hours-for-query: 24      # Không query payment cũ hơn 24 giờ
     query-enabled: true          # Enable/disable tính năng query
     allow-old-payment-query: false # Có cho phép query payment cũ không
+
+
+
+kafka:
+  topics:
+    payment-completed: ${PAYMENT_COMPLETED_TOPIC:payment-completed-topic}
+    payment-failed: ${PAYMENT_FAILED_TOPIC:payment-failed-topic}
+
+services:
+  appointment:
+    url: http://appointment-service
 
 eureka:
   client:

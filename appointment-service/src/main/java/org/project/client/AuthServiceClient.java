@@ -31,7 +31,6 @@ public class AuthServiceClient extends BaseServiceClient {
     public UserValidationResponse validateUser(UUID userId, String requiredRole) {
         String url = String.format("%s/api/internal/users/%s/validate?role=%s",
                 authServiceUrl, userId, requiredRole);
-        log.debug("Validating user {} with role {}", userId, requiredRole);
 
         return get(url, UserValidationResponse.class);
     }
@@ -41,8 +40,6 @@ public class AuthServiceClient extends BaseServiceClient {
      */
     public UserBasicInfoResponse getUserBasicInfo(UUID userId) {
         String url = authServiceUrl + "/api/internal/users/" + userId + "/basic";
-        log.debug("Getting basic info for user {}", userId);
-
         return get(url, UserBasicInfoResponse.class);
     }
 }

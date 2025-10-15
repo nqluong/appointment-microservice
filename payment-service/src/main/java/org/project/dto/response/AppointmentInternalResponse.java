@@ -6,10 +6,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
 
-import org.project.enums.Status;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,25 +18,17 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AppointmentResponse {
+public class AppointmentInternalResponse {
     UUID appointmentId;
     UUID doctorId;
     String doctorName;
-    String specialtyName;
     UUID patientId;
     String patientName;
     LocalDate appointmentDate;
     LocalTime startTime;
     LocalTime endTime;
     BigDecimal consultationFee;
-    Status status;
-    String notes;
-    String doctorNotes;
+    String status;
     LocalDateTime createdAt;
-    LocalDateTime updatedAt;
-    
-    // Payment info
-    String paymentUrl;
-    UUID paymentId;
 }
+

@@ -4,20 +4,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.project.dto.response.ExpirationDecision;
-import org.project.enums.ExpirationAction;
 import org.project.enums.PaymentStatus;
-import org.project.model.Payment;
 import org.project.repository.PaymentRepository;
 import org.project.service.AppointmentExpirationService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
