@@ -1,7 +1,6 @@
 package org.project.service.impl;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -34,7 +33,6 @@ import org.project.gateway.vnpay.config.VNPayConfig;
 import org.project.mapper.PaymentMapper;
 import org.project.model.Payment;
 import org.project.repository.PaymentRepository;
-import org.project.service.AppointmentExpirationService;
 import org.project.service.OrderInfoBuilder;
 import org.project.service.PaymentAmountCalculator;
 import org.project.service.PaymentQueryService;
@@ -73,7 +71,6 @@ public class PaymentServiceImpl implements PaymentService {
     PaymentAmountCalculator paymentAmountCalculator;
     PaymentStatusHandler paymentStatusHandler;
     PaymentQueryService paymentQueryService;
-    AppointmentExpirationService appointmentExpirationService;
     OrderInfoBuilder orderInfoBuilder;
     PaymentRefundValidationService paymentRefundValidationService;
     PaymentRefundUtil paymentRefundUtil;
@@ -122,15 +119,14 @@ public class PaymentServiceImpl implements PaymentService {
         Payment updatedPayment = paymentRepository.save(payment);
 
         if(PaymentStatus.COMPLETED.equals(updatedPayment.getPaymentStatus())) {
-            log.info("Payment completed, payment id: {}", updatedPayment.getId());
+            log.info("Thanh toán thành công, ID thanh toán: {}", updatedPayment.getId());
             
             // Publish PaymentCompletedEvent
             publishPaymentCompletedEvent(updatedPayment);
         } else if (PaymentStatus.FAILED.equals(updatedPayment.getPaymentStatus())) {
-            log.info("Payment failed, payment id: {}", updatedPayment.getId());
-            
-            // Publish PaymentFailedEvent
-            publishPaymentFailedEvent(updatedPayment, "Payment verification failed");
+            log.info("Thanh toán thất bại (xác nhận bởi VNPay), ID thanh toán: {}", updatedPayment.getId());
+
+            publishPaymentFailedEvent(updatedPayment, "Xác nhận thanh toán thất bại", true);
         }
 
         log.info("Đã xử lý phản hồi thanh toán cho ID: {}, Trạng thái: {}",
@@ -138,10 +134,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         return paymentMapper.toResponse(updatedPayment);
     }
-    
-    /**
-     * Publish event khi payment hoàn thành thành công
-     */
+
     private void publishPaymentCompletedEvent(Payment payment) {
         PaymentCompletedEvent event = PaymentCompletedEvent.builder()
                 .paymentId(payment.getId())
@@ -156,13 +149,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
                 
         kafkaTemplate.send(topics.getPaymentCompleted(), payment.getAppointmentId().toString(), event);
-        log.info("Published PaymentCompletedEvent for appointment: {}", payment.getAppointmentId());
+        log.info("Đã gửi PaymentCompletedEvent cho appointment: {}", payment.getAppointmentId());
     }
-    
-    /**
-     * Publish event khi payment thất bại
-     */
-    private void publishPaymentFailedEvent(Payment payment, String reason) {
+
+    private void publishPaymentFailedEvent(Payment payment, String reason, boolean confirmedFailure) {
         PaymentFailedEvent event = PaymentFailedEvent.builder()
                 .paymentId(payment.getId())
                 .appointmentId(payment.getAppointmentId())
@@ -170,10 +160,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .reason(reason)
                 .failedService("payment-service")
                 .timestamp(LocalDateTime.now())
+                .confirmedFailure(confirmedFailure)
                 .build();
                 
         kafkaTemplate.send(topics.getPaymentFailed(), payment.getAppointmentId().toString(), event);
-        log.info("Published PaymentFailedEvent for appointment: {}", payment.getAppointmentId());
+        log.info("Đã gửi PaymentFailedEvent cho appointment: {}, confirmedFailure: {}", 
+                payment.getAppointmentId(), confirmedFailure);
     }
 
     // Xử lý hoàn tiền khi hủy
@@ -229,11 +221,6 @@ public class PaymentServiceImpl implements PaymentService {
     public void handlePaymentFailure(UUID paymentId) {
         paymentStatusHandler.handlePaymentFailure(paymentId);
     }
-
-//    @Override
-//    public void processExpiredPayments() {
-//        appointmentExpirationService.processExpiredAppointments();
-//    }
 
     @Override
     public PaymentResponse queryPaymentStatus(UUID paymentId) {

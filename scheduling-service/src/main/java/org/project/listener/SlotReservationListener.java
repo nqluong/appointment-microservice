@@ -21,7 +21,8 @@ public class SlotReservationListener {
     // release slot khi appointment bị cancel
     @KafkaListener(
             topics = "#{@schedulingKafkaTopics.appointmentCancelled}",
-            groupId = "scheduling-service"
+            groupId = "scheduling-service",
+            concurrency = "3"
     )
     @Transactional
     public void handleAppointmentCancelled(AppointmentCancelledEvent event) {

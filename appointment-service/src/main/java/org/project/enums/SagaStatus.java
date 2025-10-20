@@ -5,7 +5,8 @@ public enum SagaStatus {
     SLOT_RESERVED,
     PATIENT_VALIDATED,
     DOCTOR_VALIDATED,
-    COMPLETED,
+    COMPLETED,                  // Creation phase completed (validation done)
+    PAYMENT_COMPLETED,          // Payment phase completed
     FAILED,
     COMPENSATING,
     COMPENSATED

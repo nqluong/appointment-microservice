@@ -22,5 +22,7 @@ public class PaymentFailedEvent {
     String reason;
     String failedService;
     LocalDateTime timestamp;
+
+    boolean confirmedFailure;
 }
 

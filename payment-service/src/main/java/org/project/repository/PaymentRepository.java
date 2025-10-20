@@ -1,5 +1,10 @@
 package org.project.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.project.enums.PaymentStatus;
 import org.project.enums.PaymentType;
 import org.project.model.Payment;
@@ -7,11 +12,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
@@ -23,6 +23,8 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     //boolean existsByAppointmentAndPaymentStatus(Appointment appointment, PaymentStatus status);
 
     boolean existsByAppointmentIdAndPaymentStatusIn(UUID appointmentId, List<PaymentStatus> statuses);
+    
+    boolean existsByAppointmentIdAndPaymentStatus(UUID appointmentId, PaymentStatus status);
 
     boolean existsByAppointmentIdAndPaymentTypeAndPaymentStatusIn(
             UUID appointmentId, PaymentType paymentType, List<PaymentStatus> statuses);

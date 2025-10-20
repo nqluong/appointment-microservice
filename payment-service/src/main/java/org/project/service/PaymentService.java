@@ -25,8 +25,6 @@ public interface PaymentService {
 
     void handlePaymentFailure(UUID paymentId);
 
-//    void processExpiredPayments();
-
     PaymentResponse queryPaymentStatus(UUID paymentId);
 
     PaymentResponse queryPaymentStatus(String transactionId);

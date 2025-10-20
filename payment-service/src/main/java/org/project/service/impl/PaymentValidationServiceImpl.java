@@ -28,10 +28,6 @@ public class PaymentValidationServiceImpl implements PaymentValidationService {
     @Override
     public void validateCreatePaymentRequest(CreatePaymentRequest request) {
 
-//        if (!appointmentRepository.existsById(request.getAppointmentId())) {
-//            throw new CustomException(ErrorCode.PAYMENT_NOT_FOUND, "Appointment not found");
-//        }
-
         boolean hasPendingPayment = paymentRepository.existsByAppointmentIdAndPaymentStatusIn(
                 request.getAppointmentId(),
                 Arrays.asList(PaymentStatus.PENDING, PaymentStatus.PROCESSING)
@@ -60,7 +56,6 @@ public class PaymentValidationServiceImpl implements PaymentValidationService {
     public void validatePaymentStatusTransition(Payment payment, PaymentStatus newStatus) {
         PaymentStatus currentStatus = payment.getPaymentStatus();
 
-        // Logic chuyen doi trang thai payment
         boolean isValidTransition = switch (currentStatus) {
             case PENDING -> Arrays.asList(PaymentStatus.PROCESSING, PaymentStatus.CANCELLED, PaymentStatus.FAILED)
                     .contains(newStatus);

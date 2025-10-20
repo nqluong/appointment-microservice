@@ -34,6 +34,9 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
+    listener:
+      concurrency: 3  # Số thread xử lý đồng thời = số partition
+      ack-mode: manual
 
 vnpay:
   version: "2.1.0"

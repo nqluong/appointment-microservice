@@ -91,7 +91,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return pageMapper.toPageResponse(appointments,appointmentMapper::toDto);
     }
 
-    //Tạo lịch hẹn mới với SYNC validation và ASYNC saga
     @Transactional
     @Override
     public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
@@ -150,15 +149,13 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.error("Không thể reserve slot: {}", reservationResponse.getMessage());
             throw new CustomException(ErrorCode.SLOT_ALREADY_BOOKED);
         }
-        
-        // Lấy consultationFee từ doctor validation (đảm bảo không null)
+
         BigDecimal consultationFee = doctorValidation.getConsultationFee();
         if (consultationFee == null) {
             log.error("Doctor {} không có consultation fee", request.getDoctorId());
             throw new CustomException(ErrorCode.CONSULTATION_FEE_NOT_FOUND);
         }
 
-        // Tạo Appointment với thông tin đầy đủ từ slot và doctor
         Appointment appointment = Appointment.builder()
                 .doctorUserId(request.getDoctorId())
                 .patientUserId(request.getPatientId())
@@ -166,7 +163,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .appointmentDate(slotDetails.getSlotDate())
                 .startTime(slotDetails.getStartTime())
                 .endTime(slotDetails.getEndTime())
-                .consultationFee(consultationFee)  // Lấy từ doctor validation
+                .consultationFee(consultationFee)
                 .notes(request.getNotes())
                 .status(Status.PENDING)
                 .build();
@@ -197,10 +194,12 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send(topics.getAppointmentCreated(), sagaId, event);
 
-        log.info("Đã publish AppointmentCreatedEvent cho async enrichment: sagaId={}, appointmentId={}",
-                sagaId, appointment.getId());
+        String partitionKey = appointment.getId().toString();
+        kafkaTemplate.send(topics.getAppointmentCreated(), partitionKey, event);
+
+        log.info("Đã publish AppointmentCreatedEvent cho async enrichment: sagaId={}, appointmentId={}, partitionKey={}",
+                sagaId, appointment.getId(), partitionKey);
 
         PaymentUrlResponse paymentUrlResponse = createPaymentUrl(appointment.getId(), appointment.getConsultationFee());
 
@@ -573,10 +572,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Patient {} đã được validate thành công", patientId);
     }
 
-    /**
-     * Validate doctor tồn tại, active, có role DOCTOR và đã được approve (SYNC)
-     * Trả về DoctorValidationResponse chứa consultationFee để dùng ngay
-     */
+
     private DoctorValidationResponse validateDoctorSync(UUID doctorId) {
         // Validate user tồn tại và active
         UserValidationResponse validation = authServiceClient.validateUser(doctorId, "DOCTOR");
@@ -595,8 +591,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.error("User không có role DOCTOR: {}", doctorId);
             throw new CustomException(ErrorCode.DOCTOR_NOT_FOUND);
         }
-        
-        // Validate doctor đã được approve trong medical profile
+
         DoctorValidationResponse doctorValidation = userProfileServiceClient.validateDoctor(doctorId);
         
         if (!doctorValidation.isApproved()) {
@@ -607,7 +602,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Doctor {} đã được validate thành công với consultationFee: {}", 
                 doctorId, doctorValidation.getConsultationFee());
         
-        return doctorValidation;  // Trả về để lấy consultationFee
+        return doctorValidation;
     }
 
     private void validateStatusTransition(Status currentStatus, Status newStatus) {

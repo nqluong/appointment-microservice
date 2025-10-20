@@ -1,10 +1,16 @@
 package org.project.controller;
 
+import java.util.UUID;
+
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.response.PaymentUrlResponse;
+import org.project.enums.PaymentStatus;
+import org.project.repository.PaymentRepository;
 import org.project.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InternalPaymentController {
     
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
 
     /**
      * Internal API để appointment service tạo payment URL
@@ -63,5 +70,17 @@ public class InternalPaymentController {
 
         log.debug("Resolved client IP: {}", clientIp);
         return clientIp;
+    }
+    
+
+    @GetMapping("/appointment/{appointmentId}/has-processing")
+    public ResponseEntity<Boolean> hasProcessingPayment(@PathVariable UUID appointmentId) {
+        log.debug("Kiểm tra payment PROCESSING cho appointment: {}", appointmentId);
+        
+        boolean hasProcessing = paymentRepository.existsByAppointmentIdAndPaymentStatus(
+                appointmentId, PaymentStatus.PROCESSING);
+        
+        log.debug("Appointment {} có payment PROCESSING: {}", appointmentId, hasProcessing);
+        return ResponseEntity.ok(hasProcessing);
     }
 }

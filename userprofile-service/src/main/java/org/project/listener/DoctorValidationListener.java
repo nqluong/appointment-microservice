@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import org.project.client.AuthServiceClient;
 import org.project.config.UserProfileKafkaTopics;
+import org.project.dto.events.AppointmentCreatedEvent;
 import org.project.dto.events.DoctorValidatedEvent;
-import org.project.dto.events.PatientValidatedEvent;
 import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.MedicalProfileResponse;
 import org.project.dto.response.UserBasicInfoResponse;
@@ -38,12 +38,14 @@ public class DoctorValidationListener {
     private final UserProfileKafkaTopics topics;
 
     @KafkaListener(
-            topics = "#{@userProfileKafkaTopics.patientValidated}",
-            groupId = "userprofile-service"
+            topics = "#{@userProfileKafkaTopics.appointmentCreated}",
+            groupId = "userprofile-service",
+            concurrency = "3"
     )
     @Transactional
-    public void handlePatientValidated(PatientValidatedEvent event) {
-        log.info("Nhận PatientValidatedEvent để enrich doctor info: sagaId={}", event.getSagaId());
+    public void handleAppointmentCreated(AppointmentCreatedEvent event) {
+        log.info("Nhận AppointmentCreatedEvent để validate doctor: sagaId={}, appointmentId={}", 
+                event.getSagaId(), event.getAppointmentId());
 
         try {
             UUID doctorUserId = event.getDoctorUserId();
@@ -85,7 +87,8 @@ public class DoctorValidationListener {
                     .timestamp(LocalDateTime.now())
                     .build();
 
-            kafkaTemplate.send(topics.getDoctorValidated(), event.getSagaId(), validatedEvent);
+            String partitionKey = event.getAppointmentId().toString();
+            kafkaTemplate.send(topics.getDoctorValidated(), partitionKey, validatedEvent);
 
 
         } catch (Exception e) {
@@ -94,7 +97,7 @@ public class DoctorValidationListener {
         }
     }
 
-    private void publishValidationFailed(PatientValidatedEvent event, String reason) {
+    private void publishValidationFailed(AppointmentCreatedEvent event, String reason) {
         ValidationFailedEvent failedEvent = ValidationFailedEvent.builder()
                 .sagaId(event.getSagaId())
                 .appointmentId(event.getAppointmentId())
@@ -103,7 +106,8 @@ public class DoctorValidationListener {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send(topics.getValidationFailed(), event.getSagaId(), failedEvent);
+        String partitionKey = event.getAppointmentId().toString();
+        kafkaTemplate.send(topics.getValidationFailed(), partitionKey, failedEvent);
     }
 
 }

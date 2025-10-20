@@ -33,15 +33,18 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
+    listener:
+      concurrency: 3
+      ack-mode: manual
 
 kafka:
   topics:
-    # Topics mà service này publish
+    #publish
     appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
     appointment-confirmed: ${APPOINTMENT_CONFIRMED_TOPIC:appointment-confirmed-topic}
     appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled-topic}
 
-    # Topics mà service này consume
+    # consume
     slot-reserved: ${SLOT_RESERVED_TOPIC:slot-reserved-topic}
     patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
     doctor-validated: ${DOCTOR_VALIDATED_TOPIC:doctor-validated-topic}
@@ -65,3 +68,7 @@ services:
     url: http://auth-service
   payment:
     url: http://payment-service
+
+appointment:
+  pending-timeout: ${PENDING_TIMEOUT_MINUTES:15}
+  grace_period: ${GRACE_PERIOD_MINUTES:30}

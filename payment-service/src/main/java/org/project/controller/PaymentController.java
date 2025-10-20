@@ -101,7 +101,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/public/vnpay/callback")
+    @GetMapping("/public/vnpays/callback")
     public ResponseEntity<PaymentResponse> vnpayCallback(
             @RequestParam Map<String, String> params,
             HttpServletRequest request) {

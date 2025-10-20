@@ -32,7 +32,8 @@ public class PatientValidationListener {
 
     @KafkaListener(
             topics = "#{@authKafkaTopics.appointmentCreated}",
-            groupId = "auth-service"
+            groupId = "auth-service",
+            concurrency = "3"  // 3 thread xử lý song song từ 3 partition
     )
     @Transactional
     public void handleAppointmentCreated(AppointmentCreatedEvent event) {
@@ -66,7 +67,9 @@ public class PatientValidationListener {
                     .timestamp(LocalDateTime.now())
                     .build();
 
-            kafkaTemplate.send(topics.getPatientValidated(), event.getSagaId(), validatedEvent);
+            // Dùng appointmentId làm key để event của cùng appointment vào cùng partition
+            String partitionKey = event.getAppointmentId().toString();
+            kafkaTemplate.send(topics.getPatientValidated(), partitionKey, validatedEvent);
 
         } catch (Exception e) {
             log.error("Lỗi khi lấy patient info", e);
@@ -83,6 +86,7 @@ public class PatientValidationListener {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send(topics.getValidationFailed(), event.getSagaId(), failedEvent);
+        String partitionKey = event.getAppointmentId().toString();
+        kafkaTemplate.send(topics.getValidationFailed(), partitionKey, failedEvent);
     }
 }

@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AppointmentSagaListener {
+public class AppointmentCreationSagaListener {
     AppointmentRepository appointmentRepository;
     SagaStateRepository sagaStateRepository;
     KafkaTemplate<String, Object> kafkaTemplate;
@@ -38,7 +38,8 @@ public class AppointmentSagaListener {
 
     @KafkaListener(
             topics = "#{@appointmentKafkaTopics.validationFailed}",
-            groupId = "appointment-service"
+            groupId = "appointment-service",
+            concurrency = "3"
     )
     @Transactional
     public void handleValidationFailed(ValidationFailedEvent event) {
@@ -66,17 +67,19 @@ public class AppointmentSagaListener {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        kafkaTemplate.send(topics.getAppointmentCancelled(), event.getSagaId(), cancelEvent);
+        String partitionKey = event.getAppointmentId().toString();
+        kafkaTemplate.send(topics.getAppointmentCancelled(), partitionKey, cancelEvent);
 
         sagaState.setStatus(SagaStatus.COMPENSATED);
         sagaStateRepository.save(sagaState);
 
-        log.info("Đã compensate appointment: id={}", appointment.getId());
+        log.info("Đã compensate appointment: id={}, partitionKey={}", appointment.getId(), partitionKey);
     }
 
     @KafkaListener(
             topics = "#{@appointmentKafkaTopics.patientValidated}",
-            groupId = "appointment-service"
+            groupId = "appointment-service",
+            concurrency = "3"
     )
     @Transactional
     public void handlePatientValidated(PatientValidatedEvent event) {
@@ -97,7 +100,8 @@ public class AppointmentSagaListener {
 
     @KafkaListener(
             topics = "#{@appointmentKafkaTopics.doctorValidated}",
-            groupId = "appointment-service"
+            groupId = "appointment-service",
+            concurrency = "3"
     )
     @Transactional
     public void handleDoctorValidated(DoctorValidatedEvent event) {
@@ -108,16 +112,13 @@ public class AppointmentSagaListener {
         Appointment appointment = appointmentRepository.findById(event.getAppointmentId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
 
-        // Enrich doctor information (consultationFee đã được set SYNC khi tạo appointment)
         appointment.setDoctorName(event.getDoctorName());
         appointment.setDoctorEmail(event.getDoctorEmail());
         appointment.setSpecialtyName(event.getSpecialtyName());
-        // appointment.setConsultationFee() - Không cần set vì đã có từ lúc tạo appointment (SYNC)
-
+        
         appointmentRepository.save(appointment);
 
-        log.info("Appointment đã được enrich đầy đủ thông tin doctor: id={}", appointment.getId());
-
+        log.info("Appointment đã được lấy đầy đủ thông tin doctor: id={}", appointment.getId());
     }
 
     private void updateSagaState(String sagaId, SagaStatus status, String step) {

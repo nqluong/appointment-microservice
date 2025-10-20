@@ -1,5 +1,7 @@
 package org.project.client;
 
+import java.util.UUID;
+
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.response.PaymentUrlResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,10 +36,10 @@ public class PaymentServiceClient extends BaseServiceClient {
         log.info("Tạo payment URL cho appointment: {}", request.getAppointmentId());
 
         try {
-            // Thêm header X-Forwarded-For để payment service có thể lấy IP
+            // header X-Forwarded-For để có thể lấy IP
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Forwarded-For", "127.0.0.1"); // Default IP cho internal call
+            headers.set("X-Forwarded-For", "127.0.0.1");
             
             HttpEntity<CreatePaymentRequest> entity = new HttpEntity<>(request, headers);
             
@@ -51,6 +53,21 @@ public class PaymentServiceClient extends BaseServiceClient {
         } catch (Exception e) {
             log.error("Error creating payment for appointment: {}", request.getAppointmentId(), e);
             throw new RuntimeException("Failed to create payment URL", e);
+        }
+    }
+    
+    /**
+     * Kiểm tra xem appointment có payment đang PROCESSING không
+     */
+    public boolean hasProcessingPayment(UUID appointmentId) {
+        String url = paymentServiceUrl + "/api/internal/payments/appointment/" + appointmentId + "/has-processing";
+        
+        try {
+            ResponseEntity<Boolean> response = restTemplate.getForEntity(url, Boolean.class);
+            return Boolean.TRUE.equals(response.getBody());
+        } catch (Exception e) {
+            log.warn("Error checking processing payment for appointment: {}, assume false", appointmentId, e);
+            return false;
         }
     }
 }
