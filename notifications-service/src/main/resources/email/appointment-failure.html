@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo hủy lịch khám</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .failure-badge {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .failure-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .failure-title {
+            color: #721c24;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .failure-message {
+            color: #721c24;
+            font-size: 16px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 25px;
+            color: #2c3e50;
+        }
+        .info-section {
+            margin: 30px 0;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .info-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #dc3545;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            flex: 1;
+        }
+        .info-value {
+            color: #212529;
+            font-weight: 500;
+            flex: 2;
+            text-align: right;
+        }
+        .reason-box {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .reason-title {
+            color: #856404;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .reason-content {
+            color: #856404;
+            font-size: 16px;
+        }
+        .action-note {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .note-title {
+            color: #0c5460;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .note-list {
+            color: #0c5460;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .note-list li {
+            margin-bottom: 8px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .cta-button:hover {
+            opacity: 0.9;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer p {
+            margin: 8px 0;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        @media only screen and (max-width: 600px) {
+            body { padding: 10px; }
+            .content { padding: 25px 20px; }
+            .header { padding: 30px 20px; }
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            .info-value {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="email-wrapper">
+    <!-- Header -->
+    <div class="header">
+        <h1 th:text="${appName}">Hệ thống Đặt lịch Khám bệnh</h1>
+        <div class="subtitle">Thông báo hủy lịch khám</div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Failure Badge -->
+        <div class="failure-badge">
+            <div class="failure-icon">⚠️</div>
+            <div class="failure-title">Lịch khám đã bị hủy</div>
+            <div class="failure-message">Do thanh toán không thành công</div>
+        </div>
+
+        <!-- Greeting -->
+        <div class="greeting">
+            Xin chào <strong th:text="${patientName}">Bệnh nhân</strong>,
+        </div>
+
+        <p style="margin-bottom: 25px; font-size: 16px; line-height: 1.6;">
+            Chúng tôi rất tiếc phải thông báo rằng lịch khám của bạn đã bị hủy do quá trình thanh toán không thành công. 
+            Dưới đây là thông tin chi tiết:
+        </p>
+
+        <!-- Appointment Information -->
+        <div class="info-section">
+            <div class="section-title">
+                📅 Thông tin lịch khám đã hủy
+            </div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">Mã lịch hẹn:</span>
+                    <span class="info-value" th:text="${appointmentId}">APP-123456</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Bác sĩ:</span>
+                    <span class="info-value" th:text="${doctorName}">Bác sĩ Nguyễn Văn A</span>
+                </div>
+                <div class="info-row" th:if="${appointmentFullDate}">
+                    <span class="info-label">Thời gian dự kiến:</span>
+                    <span class="info-value" th:text="${appointmentFullDate}">Thứ Hai, 01/01/2025 lúc 09:00</span>
+                </div>
+                <div class="info-row" th:if="${transactionId}">
+                    <span class="info-label">Mã giao dịch:</span>
+                    <span class="info-value" th:text="${transactionId}">TXN-123456</span>
+                </div>
+                <div class="info-row" th:if="${failureTime}">
+                    <span class="info-label">Thời gian hủy:</span>
+                    <span class="info-value" th:text="${failureTime}">01/01/2025 10:30</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="reason-box">
+            <div class="reason-title">
+                ❌ Lý do hủy
+            </div>
+            <div class="reason-content" th:text="${reason}">
+                Thanh toán không thành công. Vui lòng kiểm tra lại thông tin thanh toán và thử lại.
+            </div>
+        </div>
+
+        <!-- Action Note -->
+        <div class="action-note">
+            <div class="note-title">
+                💡 Bạn có thể làm gì tiếp theo?
+            </div>
+            <ul class="note-list">
+                <li><strong>Đặt lịch lại:</strong> Truy cập hệ thống để đặt lịch khám mới</li>
+                <li><strong>Kiểm tra thanh toán:</strong> Đảm bảo thông tin thẻ/tài khoản của bạn chính xác</li>
+                <li><strong>Liên hệ hỗ trợ:</strong> Gọi hotline 1900-1900 nếu cần trợ giúp</li>
+                <li><strong>Phương thức khác:</strong> Thử sử dụng phương thức thanh toán khác</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <p style="font-size: 16px; color: #2c3e50; margin-bottom: 20px;">
+                Chúng tôi luôn sẵn sàng hỗ trợ bạn đặt lịch khám lại!
+            </p>
+        </div>
+
+        <p style="font-size: 14px; color: #6c757d; text-align: center; margin-top: 25px; font-style: italic;">
+            Nếu bạn cho rằng đây là lỗi, vui lòng liên hệ bộ phận hỗ trợ của chúng tôi với mã lịch hẹn trên.
+        </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>Email tự động - Vui lòng không trả lời trực tiếp</strong></p>
+        <p>
+            Cần hỗ trợ? Liên hệ:
+            <a href="mailto:nguyenluong140504@gmail.com">nguyenluong140504@gmail.com</a>
+            hoặc hotline: <strong>1900-1900</strong>
+        </p>
+        <p style="margin-top: 20px;">
+            &copy; 2025 <span th:text="${appName}">Hệ thống Đặt lịch Khám bệnh</span>.
+            All rights reserved.
+        </p>
+    </div>
+</div>
+</body>
+</html>
+

@@ -1,5 +1,9 @@
 package org.project.enums;
 
 public enum Status {
-    PENDING, SENT, FAILED
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
+    COMPLETED,
+    NO_SHOW
 }

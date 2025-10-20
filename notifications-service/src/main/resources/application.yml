@@ -13,6 +13,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  thymeleaf:
+    prefix: classpath:/
+    suffix: .html
+    mode: HTML
+    cache: false
   mail:
     host: smtp.gmail.com
     port: 587
@@ -24,8 +29,27 @@ spring:
           auth: true
           starttls:
             enable: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notifications-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+    listener:
+      concurrency: 3
+      ack-mode: manual
+
+kafka:
+  topics:
+    appointment-confirmed: ${APPOINTMENT_CONFIRMED_TOPIC:appointment-confirmed-topic}
+    appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled-topic}
+
 server:
   port: 0
+
 eureka:
   client:
     service-url:

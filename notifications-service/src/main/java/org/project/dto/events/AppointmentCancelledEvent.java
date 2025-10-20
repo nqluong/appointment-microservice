@@ -41,3 +41,4 @@ public class AppointmentCancelledEvent {
     String sagaId;
     LocalDateTime timestamp;
 }
+

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
+import org.project.dto.events.AppointmentConfirmedEvent;
 import org.project.dto.events.PaymentCompletedEvent;
 import org.project.dto.events.PaymentFailedEvent;
 import org.project.enums.SagaStatus;
@@ -61,6 +62,9 @@ public class AppointmentPaymentSagaListener {
                     SagaStatus.PAYMENT_COMPLETED, 
                     "PAYMENT_COMPLETED"
                 );
+
+                //Notifications
+                publishAppointmentConfirmedEvent(appointment, event);
                 
                 log.info("Appointment {} đã được CONFIRMED sau khi thanh toán thành công", 
                         appointment.getId());
@@ -103,7 +107,7 @@ public class AppointmentPaymentSagaListener {
                     appointment.setStatus(Status.CANCELLED);
                     appointmentRepository.save(appointment);
 
-                    publishAppointmentCancelledEvent(appointment, event.getReason());
+                    publishAppointmentCancelledEvent(appointment, event.getReason(), event.getTransactionId());
 
                     updateSagaStateByAppointmentId(
                         appointment.getId(),
@@ -150,19 +154,63 @@ public class AppointmentPaymentSagaListener {
                 });
     }
 
-    private void publishAppointmentCancelledEvent(Appointment appointment, String reason) {
+    private void publishAppointmentCancelledEvent(Appointment appointment, String reason, String transactionId) {
         AppointmentCancelledEvent cancelEvent = AppointmentCancelledEvent.builder()
                 .appointmentId(appointment.getId())
                 .slotId(appointment.getSlotId())
+                .patientUserId(appointment.getPatientUserId())
+                .patientName(appointment.getPatientName())
+                .patientEmail(appointment.getPatientEmail())
+                .patientPhone(appointment.getPatientPhone())
+                .doctorUserId(appointment.getDoctorUserId())
+                .doctorName(appointment.getDoctorName())
+                .doctorEmail(appointment.getDoctorEmail())
+                .specialtyName(appointment.getSpecialtyName())
+                .appointmentDate(appointment.getAppointmentDate())
+                .startTime(appointment.getStartTime())
+                .endTime(appointment.getEndTime())
                 .reason(reason)
+                .transactionId(transactionId)
                 .timestamp(LocalDateTime.now())
                 .build();
 
         String partitionKey = appointment.getId().toString();
         kafkaTemplate.send(topics.getAppointmentCancelled(), partitionKey, cancelEvent);
         
-        log.info("Đã gửi AppointmentCancelledEvent để release slot: appointmentId={}, slotId={}, partitionKey={}", 
+        log.info("Đã gửi AppointmentCancelledEvent với đầy đủ thông tin: appointmentId={}, slotId={}, partitionKey={}", 
                 appointment.getId(), appointment.getSlotId(), partitionKey);
+    }
+
+    private void publishAppointmentConfirmedEvent(Appointment appointment, PaymentCompletedEvent paymentEvent) {
+        AppointmentConfirmedEvent confirmedEvent = AppointmentConfirmedEvent.builder()
+                .appointmentId(appointment.getId())
+                .slotId(appointment.getSlotId())
+                .patientUserId(appointment.getPatientUserId())
+                .patientName(appointment.getPatientName())
+                .patientEmail(appointment.getPatientEmail())
+                .patientPhone(appointment.getPatientPhone())
+                .doctorUserId(appointment.getDoctorUserId())
+                .doctorName(appointment.getDoctorName())
+                .doctorEmail(appointment.getDoctorEmail())
+                .specialtyName(appointment.getSpecialtyName())
+                .appointmentDate(appointment.getAppointmentDate())
+                .startTime(appointment.getStartTime())
+                .endTime(appointment.getEndTime())
+                .consultationFee(appointment.getConsultationFee())
+                .notes(appointment.getNotes())
+                .paymentId(paymentEvent.getPaymentId())
+                .paymentAmount(paymentEvent.getAmount())
+                .paymentType(paymentEvent.getPaymentType())
+                .transactionId(paymentEvent.getTransactionId())
+                .paymentDate(paymentEvent.getPaymentDate())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        String partitionKey = appointment.getId().toString();
+        kafkaTemplate.send(topics.getAppointmentConfirmed(), partitionKey, confirmedEvent);
+        
+        log.info("Đã gửi AppointmentConfirmedEvent với đầy đủ thông tin: appointmentId={}, partitionKey={}", 
+                appointment.getId(), partitionKey);
     }
 }
 

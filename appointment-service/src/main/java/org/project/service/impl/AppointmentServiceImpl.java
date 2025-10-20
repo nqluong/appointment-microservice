@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.project.client.AuthServiceClient;
 import org.project.client.PaymentServiceClient;
@@ -66,6 +68,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     PageMapper pageMapper;
     AppointmentMapper appointmentMapper;
+    
+    Executor validationExecutor;
 
     @Override
     public PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
@@ -97,8 +101,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String sagaId = UUID.randomUUID().toString();
         log.info("Bắt đầu tạo appointment: sagaId={}", sagaId);
 
-        validatePatientSync(request.getPatientId());
-        DoctorValidationResponse doctorValidation = validateDoctorSync(request.getDoctorId());
+        DoctorValidationResponse doctorValidation = validateInParallel(request.getPatientId(), request.getDoctorId());
 
         SlotDetailsResponse slotDetails = schedulingServiceClient.getSlotDetails(request.getSlotId());
         
@@ -241,14 +244,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
 
-        // Đã có đầy đủ thông tin denormalized
         return AppointmentResponse.builder()
                 .appointmentId(appointment.getId())
                 .doctorId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())
+                .doctorEmail(appointment.getDoctorEmail())
                 .specialtyName(appointment.getSpecialtyName())
                 .patientId(appointment.getPatientUserId())
                 .patientName(appointment.getPatientName())
+                .patientEmail(appointment.getPatientEmail())
+                .patientPhone(appointment.getPatientPhone())
                 .appointmentDate(appointment.getAppointmentDate())
                 .startTime(appointment.getStartTime())
                 .endTime(appointment.getEndTime())
@@ -550,6 +555,31 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
     }
 
+
+    private DoctorValidationResponse validateInParallel(UUID patientId, UUID doctorId) {
+        long startTime = System.currentTimeMillis();
+
+        CompletableFuture<Void> patientValidation = CompletableFuture.runAsync(() -> 
+            validatePatientSync(patientId), validationExecutor
+        );
+        
+        CompletableFuture<DoctorValidationResponse> doctorValidation = CompletableFuture.supplyAsync(() -> 
+            validateDoctorSync(doctorId), validationExecutor
+        );
+        
+        try {
+            CompletableFuture.allOf(patientValidation, doctorValidation).join();
+            return doctorValidation.get();
+            
+        } catch (Exception e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof CustomException) {
+                throw (CustomException) cause;
+            }
+            log.error("Validation failed with unexpected error", e);
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
+    }
 
     private void validatePatientSync(UUID patientId) {
         UserValidationResponse validation = authServiceClient.validateUser(patientId, "PATIENT");

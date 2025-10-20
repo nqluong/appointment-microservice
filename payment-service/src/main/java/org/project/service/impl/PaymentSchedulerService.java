@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PaymentSchedulerService {
 
-    private static final long PENDING_PAYMENT_INTERVAL = 60;
+    private static final long PENDING_PAYMENT_INTERVAL = 30000;
 
     PaymentQueryService paymentQueryService;
 

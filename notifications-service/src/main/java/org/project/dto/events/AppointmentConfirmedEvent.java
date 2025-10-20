@@ -1,5 +1,6 @@
 package org.project.dto.events;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -17,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AppointmentCancelledEvent {
+public class AppointmentConfirmedEvent {
     UUID appointmentId;
     UUID slotId;
 
@@ -34,10 +35,16 @@ public class AppointmentCancelledEvent {
     LocalDate appointmentDate;
     LocalTime startTime;
     LocalTime endTime;
+    BigDecimal consultationFee;
+    String notes;
 
-    String reason;
+    UUID paymentId;
+    BigDecimal paymentAmount;
+    String paymentType;
     String transactionId;
+    LocalDateTime paymentDate;
 
     String sagaId;
     LocalDateTime timestamp;
 }
+

@@ -27,9 +27,12 @@ public class AppointmentResponse {
     UUID appointmentId;
     UUID doctorId;
     String doctorName;
+    String doctorEmail;
     String specialtyName;
     UUID patientId;
     String patientName;
+    String patientEmail;
+    String patientPhone;
     LocalDate appointmentDate;
     LocalTime startTime;
     LocalTime endTime;
