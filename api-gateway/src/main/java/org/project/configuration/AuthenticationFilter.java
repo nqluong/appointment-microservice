@@ -36,10 +36,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/verify",
             "/api/payments/public/vnpay/callback",
             "/api/payments/public/vnpay/return",
-            "/api/doctors/public",
             "/api/specialties/public",
             "/api/schedules/public"
     );
+
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -110,5 +110,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
+
 
 }

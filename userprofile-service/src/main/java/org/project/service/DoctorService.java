@@ -1,6 +1,8 @@
 package org.project.service;
 
 
+import java.util.UUID;
+
 import org.project.dto.PageResponse;
 import org.project.dto.response.DoctorResponse;
 import org.springframework.data.domain.Pageable;
@@ -10,4 +12,6 @@ public interface DoctorService {
     PageResponse<DoctorResponse> getAllDoctors(Pageable pageable);
 
     PageResponse<DoctorResponse> getDoctorsWithFilters(String specialtyName, Pageable pageable);
+    
+    PageResponse<DoctorResponse> getDoctorsBySpecialtyId(UUID specialtyId, Pageable pageable);
 }

@@ -45,6 +45,16 @@ kafka:
     appointment-confirmed: ${APPOINTMENT_CONFIRMED_TOPIC:appointment-confirmed-topic}
     appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled-topic}
 
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:NguyenLuong1405}
+
+cache:
+  availability:
+    ttl-days: 1
+    days-to-cache: 14
+
 server:
   port: 0
 eureka:
@@ -58,3 +68,37 @@ service:
     url: http://auth-service
   payment-service:
     url: http://payment-service
+  userprofile-service:
+    url: http://userprofile-service
+
+# FeignClient configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 2000
+        read-timeout: 5000
+        logger-level: full
+      userprofile-service:
+        connect-timeout: 2000
+        read-timeout: 5000
+        logger-level: full
+  hystrix:
+    enabled: false
+  circuitbreaker:
+    enabled: false
+  httpclient:
+    enabled: true
+    max-connections: 200
+    max-connections-per-route: 50
+
+app:
+  user-profile:
+    use-feign: true  # true = FeignClient, false = RestTemplate
+
+  availability:
+    thread-pool-size: 10  # Số thread cho parallel processing
+    batch-size: 50        # Kích thước batch cho xử lý
+    cache-ttl: 3600       # Cache TTL (seconds)
+    enable-parallel: true # Bật parallel processing
+    enable-batch-cache: true # Bật batch cache operations

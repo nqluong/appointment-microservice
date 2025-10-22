@@ -27,6 +27,8 @@
         <module>api-gateway</module>
         <module>common-core</module>
         <module>common-security</module>
+        <!-- Cache module deprecated - cache logic moved to individual services -->
+        <!-- <module>cache</module> -->
     </modules>
 
     <properties>

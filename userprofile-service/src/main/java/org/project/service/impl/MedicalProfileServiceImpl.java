@@ -1,18 +1,22 @@
 package org.project.service.impl;
 
+import java.util.UUID;
+
+import org.project.dto.PageResponse;
+import org.project.dto.response.DoctorResponse;
+import org.project.dto.response.MedicalProfileResponse;
+import org.project.exception.CustomException;
+import org.project.repository.MedicalProfileRepository;
+import org.project.service.DoctorService;
+import org.project.service.MedicalProfileService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.project.dto.response.DoctorValidationResponse;
-import org.project.dto.response.MedicalProfileResponse;
-import org.project.exception.CustomException;
-import org.project.repository.MedicalProfileRepository;
-import org.project.service.MedicalProfileService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -20,6 +24,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MedicalProfileServiceImpl implements MedicalProfileService {
     MedicalProfileRepository medicalProfileRepository;
+    DoctorService doctorService;
 
     @Transactional(readOnly = true)
     @Override
@@ -33,55 +38,34 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
 
     @Transactional(readOnly = true)
     @Override
-    public DoctorValidationResponse validateDoctorForAppointment(UUID doctorId) {
-        MedicalProfileResponse profile = medicalProfileRepository.findByUserId(doctorId).orElse(null);
+    public DoctorResponse validateDoctorForAppointment(UUID doctorId) {
+        MedicalProfileResponse profile = medicalProfileRepository.findByUserId(doctorId)
+                .orElseThrow(() -> new CustomException("Doctor not found: " + doctorId));
 
-        if (profile == null) {
-            return DoctorValidationResponse.builder()
-                    .valid(false)
-                    .approved(false)
-                    .hasLicense(false)
-                    .message("Doctor does not have medical profile")
-                    .consultationFee(null)
-                    .build();
-        }
-
-        if (!profile.isDoctorApproved()) {
-            return DoctorValidationResponse.builder()
-                    .valid(true)
-                    .approved(false)
-                    .hasLicense(profile.getLicenseNumber() != null)
-                    .message("Doctor is not approved yet")
-                    .consultationFee(null)
-                    .build();
-        }
-
-        if (profile.getLicenseNumber() == null || profile.getLicenseNumber().trim().isEmpty()) {
-            return DoctorValidationResponse.builder()
-                    .valid(true)
-                    .approved(true)
-                    .hasLicense(false)
-                    .message("Doctor does not have license number")
-                    .consultationFee(profile.getConsultationFee())
-                    .build();
-        }
-
-        if (profile.getConsultationFee() == null) {
-            return DoctorValidationResponse.builder()
-                    .valid(true)
-                    .approved(true)
-                    .hasLicense(true)
-                    .message("Doctor has not set consultation fee")
-                    .consultationFee(null)
-                    .build();
-        }
-
-        return DoctorValidationResponse.builder()
-                .valid(true)
-                .approved(true)
-                .hasLicense(true)
-                .message("Doctor validation successful")
+        // Chuyển đổi MedicalProfileResponse thành DoctorResponse
+        return DoctorResponse.builder()
+                .userId(profile.getUserId())
+                .fullName(profile.getFirstName() + " " + profile.getLastName())
+                .gender(profile.getGender() != null ? profile.getGender().toString() : null)
+                .phone(profile.getPhone())
+                .avatarUrl(profile.getUrlAvatar() != null ? profile.getUrlAvatar() : null)
+                .qualification(profile.getQualification())
+                .yearsOfExperience(profile.getYearsOfExperience())
                 .consultationFee(profile.getConsultationFee())
+                .specialtyName(profile.getSpecialtyName())
                 .build();
     }
+
+    @Override
+    public PageResponse<DoctorResponse> getDoctors(Pageable pageable) {
+        log.info("Lấy danh sách bác sĩ với phân trang cho internal API");
+        return doctorService.getAllDoctors(pageable);
+    }
+
+    @Override
+    public PageResponse<DoctorResponse> getDoctorsBySpecialty(UUID specialtyId, Pageable pageable) {
+        log.info("Lấy danh sách bác sĩ theo chuyên khoa {} với phân trang cho internal API", specialtyId);
+        return doctorService.getDoctorsBySpecialtyId(specialtyId, pageable);
+    }
+
 }

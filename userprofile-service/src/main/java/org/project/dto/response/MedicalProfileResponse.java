@@ -2,6 +2,7 @@ package org.project.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.project.enums.Gender;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -17,6 +18,9 @@ public class MedicalProfileResponse {
     String firstName;
     String lastName;
     String licenseNumber;
+    Gender gender;
+    String phone;
+    String urlAvatar;
     UUID specialtyId;
     String specialtyName;
     String qualification;

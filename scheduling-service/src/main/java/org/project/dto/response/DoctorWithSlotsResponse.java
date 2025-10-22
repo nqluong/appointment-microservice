@@ -17,8 +17,7 @@ import java.util.List;
 public class DoctorWithSlotsResponse {
 
     String userId;
-    String firstName;
-    String lastName;
+    String fullName;
     String phone;
     String email;
     LocalDate birthDate;

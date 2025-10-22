@@ -46,6 +46,20 @@ kafka:
     #consumer
     appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
 
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:NguyenLuong1405}
+
+cache:
+  doctor:
+    profile:
+      ttl-days: 7
+      queue-key: doctor_availability_cache_queue
+      key-prefix: "doctor:profile:"
+      page-size: 50
+      max-pages: 10
+
 server:
   port: 0
 eureka:

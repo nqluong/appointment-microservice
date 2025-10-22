@@ -1,9 +1,7 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.UUID;
 
 import org.project.client.AuthServiceClient;
 import org.project.dto.PageResponse;
@@ -19,8 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +60,21 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         Page<DoctorProjection> doctorPage = doctorRepository.findDoctorsWithFilters(doctorUserIds, specialtyName, pageable);
+
+        return pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<DoctorResponse> getDoctorsBySpecialtyId(UUID specialtyId, Pageable pageable) {
+        List<UUID> doctorUserIds = getDoctorUserIds();
+
+        if (doctorUserIds.isEmpty()) {
+            log.info("Không tìm thấy bác sĩ nào từ Auth-Service");
+            return pageMapper.toPageResponse(Page.empty(pageable), doctorMapper::projectionToResponse);
+        }
+
+        Page<DoctorProjection> doctorPage = doctorRepository.findDoctorsBySpecialtyId(doctorUserIds, specialtyId, pageable);
 
         return pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
     }
