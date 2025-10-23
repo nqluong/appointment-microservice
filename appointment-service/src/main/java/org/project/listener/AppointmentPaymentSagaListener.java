@@ -1,6 +1,7 @@
 package org.project.listener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
@@ -16,6 +17,7 @@ import org.project.repository.AppointmentRepository;
 import org.project.repository.SagaStateRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +47,7 @@ public class AppointmentPaymentSagaListener {
             concurrency = "3"
     )
     @Transactional
-    public void handlePaymentCompleted(PaymentCompletedEvent event) {
+    public void handlePaymentCompleted(PaymentCompletedEvent event, Acknowledgment ack) {
         log.info("Nhận PaymentCompletedEvent: appointmentId={}, paymentId={}", 
                 event.getAppointmentId(), event.getPaymentId());
 
@@ -76,6 +78,8 @@ public class AppointmentPaymentSagaListener {
         } catch (Exception e) {
             log.error("Lỗi khi xử lý PaymentCompletedEvent: appointmentId={}", 
                     event.getAppointmentId(), e);
+        } finally {
+            ack.acknowledge();
         }
     }
 
@@ -86,7 +90,7 @@ public class AppointmentPaymentSagaListener {
             concurrency = "3"
     )
     @Transactional
-    public void handlePaymentFailed(PaymentFailedEvent event) {
+    public void handlePaymentFailed(PaymentFailedEvent event, Acknowledgment ack) {
         log.warn("Nhận PaymentFailedEvent: appointmentId={}, reason={}, confirmedFailure={}", 
                 event.getAppointmentId(), event.getReason(), event.isConfirmedFailure());
 
@@ -130,12 +134,14 @@ public class AppointmentPaymentSagaListener {
         } catch (Exception e) {
             log.error("Lỗi khi xử lý PaymentFailedEvent: appointmentId={}", 
                     event.getAppointmentId(), e);
+        } finally {
+            ack.acknowledge();
         }
     }
 
 
     private void updateSagaStateByAppointmentId(
-            java.util.UUID appointmentId, 
+            UUID appointmentId,
             SagaStatus status, 
             String step
     ) {
@@ -164,7 +170,7 @@ public class AppointmentPaymentSagaListener {
                 .patientPhone(appointment.getPatientPhone())
                 .doctorUserId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())
-                .doctorEmail(appointment.getDoctorEmail())
+                .doctorPhone(appointment.getDoctorPhone())
                 .specialtyName(appointment.getSpecialtyName())
                 .appointmentDate(appointment.getAppointmentDate())
                 .startTime(appointment.getStartTime())
@@ -191,7 +197,7 @@ public class AppointmentPaymentSagaListener {
                 .patientPhone(appointment.getPatientPhone())
                 .doctorUserId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())
-                .doctorEmail(appointment.getDoctorEmail())
+                .doctorPhone(appointment.getDoctorPhone())
                 .specialtyName(appointment.getSpecialtyName())
                 .appointmentDate(appointment.getAppointmentDate())
                 .startTime(appointment.getStartTime())

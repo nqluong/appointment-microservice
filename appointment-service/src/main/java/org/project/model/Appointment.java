@@ -32,8 +32,8 @@ public class Appointment {
     @Column(name = "doctor_name")
     String doctorName;
 
-    @Column(name = "doctor_email")
-    String doctorEmail;
+    @Column(name = "doctor_phone")
+    String doctorPhone;
 
     @Column(name = "specialty_name")
     String specialtyName;

@@ -29,7 +29,7 @@ public class AppointmentConfirmedEvent {
 
     UUID doctorUserId;
     String doctorName;
-    String doctorEmail;
+    String doctorPhone;
     String specialtyName;
 
     LocalDate appointmentDate;

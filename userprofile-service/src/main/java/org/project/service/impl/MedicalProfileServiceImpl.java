@@ -46,6 +46,7 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
         return DoctorResponse.builder()
                 .userId(profile.getUserId())
                 .fullName(profile.getFirstName() + " " + profile.getLastName())
+                .email(null) // Email không có trong MedicalProfileResponse, có thể cần lấy từ user service
                 .gender(profile.getGender() != null ? profile.getGender().toString() : null)
                 .phone(profile.getPhone())
                 .avatarUrl(profile.getUrlAvatar() != null ? profile.getUrlAvatar() : null)
@@ -53,6 +54,7 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
                 .yearsOfExperience(profile.getYearsOfExperience())
                 .consultationFee(profile.getConsultationFee())
                 .specialtyName(profile.getSpecialtyName())
+                .approved(profile.isDoctorApproved())
                 .build();
     }
 

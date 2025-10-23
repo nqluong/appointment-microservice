@@ -29,13 +29,14 @@ spring:
       group-id: ${spring.application.name}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      auto-offset-reset: earliest
+      auto-offset-reset: latest
       enable-auto-commit: false
+      auto-commit-interval-ms: 5000
       properties:
         spring.json.trusted.packages: "*"
     listener:
       concurrency: 3
-      ack-mode: manual
+      ack-mode: manual_immediate
 
 kafka:
   topics:

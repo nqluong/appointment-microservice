@@ -21,7 +21,6 @@ import lombok.experimental.FieldDefaults;
 public class DoctorResponse {
     UUID userId;
     String fullName;
-    String email;
     String gender;
     String phone;
     String avatarUrl;

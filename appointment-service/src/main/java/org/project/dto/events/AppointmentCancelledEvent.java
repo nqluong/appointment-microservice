@@ -28,7 +28,7 @@ public class AppointmentCancelledEvent {
 
     UUID doctorUserId;
     String doctorName;
-    String doctorEmail;
+    String doctorPhone;
     String specialtyName;
 
     LocalDate appointmentDate;

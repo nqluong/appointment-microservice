@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
-import org.project.dto.events.DoctorValidatedEvent;
 import org.project.dto.events.PatientValidatedEvent;
 import org.project.dto.events.ValidationFailedEvent;
 import org.project.enums.SagaStatus;
@@ -17,6 +16,7 @@ import org.project.repository.AppointmentRepository;
 import org.project.repository.SagaStateRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +42,7 @@ public class AppointmentCreationSagaListener {
             concurrency = "3"
     )
     @Transactional
-    public void handleValidationFailed(ValidationFailedEvent event) {
+    public void handleValidationFailed(ValidationFailedEvent event, Acknowledgment ack) {
         log.error("Validation failed: sagaId={}, reason={}",
                 event.getSagaId(), event.getReason());
 
@@ -69,7 +69,7 @@ public class AppointmentCreationSagaListener {
                 .patientPhone(appointment.getPatientPhone())
                 .doctorUserId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())
-                .doctorEmail(appointment.getDoctorEmail())
+                .doctorPhone(appointment.getDoctorPhone())
                 .specialtyName(appointment.getSpecialtyName())
                 .appointmentDate(appointment.getAppointmentDate())
                 .startTime(appointment.getStartTime())
@@ -85,6 +85,8 @@ public class AppointmentCreationSagaListener {
         sagaStateRepository.save(sagaState);
 
         log.info("Đã compensate appointment: id={}, partitionKey={}", appointment.getId(), partitionKey);
+
+        ack.acknowledge();
     }
 
     @KafkaListener(
@@ -93,9 +95,10 @@ public class AppointmentCreationSagaListener {
             concurrency = "3"
     )
     @Transactional
-    public void handlePatientValidated(PatientValidatedEvent event) {
+    public void handlePatientValidated(PatientValidatedEvent event, Acknowledgment ack) {
+        log.info("Nhận PatientValidatedEvent: sagaId={}", event.getSagaId());
 
-        updateSagaState(event.getSagaId(), SagaStatus.PATIENT_VALIDATED, "PATIENT_VALIDATED");
+        updateSagaState(event.getSagaId(), SagaStatus.COMPLETED, "COMPLETED");
 
         Appointment appointment = appointmentRepository.findById(event.getAppointmentId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
@@ -106,31 +109,11 @@ public class AppointmentCreationSagaListener {
 
         appointmentRepository.save(appointment);
 
-        log.info("Đã enrich thông tin patient vào appointment: {}", appointment.getId());
+        log.info("Appointment đã được enrich đầy đủ thông tin patient: id={}", appointment.getId());
+
+        ack.acknowledge();
     }
 
-    @KafkaListener(
-            topics = "#{@appointmentKafkaTopics.doctorValidated}",
-            groupId = "appointment-service",
-            concurrency = "3"
-    )
-    @Transactional
-    public void handleDoctorValidated(DoctorValidatedEvent event) {
-        log.info("Nhận DoctorValidatedEvent: sagaId={}", event.getSagaId());
-
-        updateSagaState(event.getSagaId(), SagaStatus.COMPLETED, "COMPLETED");
-
-        Appointment appointment = appointmentRepository.findById(event.getAppointmentId())
-                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
-
-        appointment.setDoctorName(event.getDoctorName());
-        appointment.setDoctorEmail(event.getDoctorEmail());
-        appointment.setSpecialtyName(event.getSpecialtyName());
-        
-        appointmentRepository.save(appointment);
-
-        log.info("Appointment đã được lấy đầy đủ thông tin doctor: id={}", appointment.getId());
-    }
 
     private void updateSagaState(String sagaId, SagaStatus status, String step) {
         AppointmentSagaState sagaState = sagaStateRepository.findById(sagaId)

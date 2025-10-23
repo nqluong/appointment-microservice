@@ -2,6 +2,7 @@ package org.project.client;
 
 import java.util.UUID;
 
+import org.project.dto.response.DoctorResponse;
 import org.project.dto.response.DoctorValidationResponse;
 import org.project.dto.response.MedicalProfileResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,10 +34,10 @@ public class UserProfileServiceClient extends BaseServiceClient {
         return get(url, MedicalProfileResponse.class);
     }
 
-    public DoctorValidationResponse validateDoctor(UUID doctorId) {
+    public DoctorResponse validateDoctor(UUID doctorId) {
         String url = userProfileServiceUrl + "/api/internal/medical-profile/validate-doctor/" + doctorId;
         log.debug("Kiểm tra doctor {}", doctorId);
 
-        return get(url, DoctorValidationResponse.class);
+        return get(url, DoctorResponse.class);
     }
 }

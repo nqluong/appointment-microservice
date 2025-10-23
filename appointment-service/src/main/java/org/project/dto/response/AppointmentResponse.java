@@ -27,7 +27,7 @@ public class AppointmentResponse {
     UUID appointmentId;
     UUID doctorId;
     String doctorName;
-    String doctorEmail;
+    String doctorPhone;
     String specialtyName;
     UUID patientId;
     String patientName;

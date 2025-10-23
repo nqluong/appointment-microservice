@@ -38,6 +38,7 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "*"
+      auto-offset-reset: latest
     listener:
       concurrency: 3
       ack-mode: manual

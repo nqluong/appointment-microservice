@@ -22,7 +22,7 @@ import org.project.dto.request.SlotReservationRequest;
 import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
-import org.project.dto.response.DoctorValidationResponse;
+import org.project.dto.response.DoctorResponse;
 import org.project.dto.response.PaymentUrlResponse;
 import org.project.dto.response.SlotDetailsResponse;
 import org.project.dto.response.SlotReservationResponse;
@@ -101,7 +101,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String sagaId = UUID.randomUUID().toString();
         log.info("Bắt đầu tạo appointment: sagaId={}", sagaId);
 
-        DoctorValidationResponse doctorValidation = validateInParallel(request.getPatientId(), request.getDoctorId());
+        DoctorResponse doctorValidation = validateInParallel(request.getPatientId(), request.getDoctorId());
 
         SlotDetailsResponse slotDetails = schedulingServiceClient.getSlotDetails(request.getSlotId());
         
@@ -159,8 +159,12 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new CustomException(ErrorCode.CONSULTATION_FEE_NOT_FOUND);
         }
 
+
         Appointment appointment = Appointment.builder()
                 .doctorUserId(request.getDoctorId())
+                .doctorName(doctorValidation.getFullName())
+                .doctorPhone(doctorValidation.getPhone())
+                .specialtyName(doctorValidation.getSpecialtyName())
                 .patientUserId(request.getPatientId())
                 .slotId(request.getSlotId())
                 .appointmentDate(slotDetails.getSlotDate())
@@ -177,13 +181,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentSagaState sagaState = AppointmentSagaState.builder()
                 .sagaId(sagaId)
                 .appointmentId(appointment.getId())
-                .status(SagaStatus.SLOT_RESERVED)
-                .currentStep("SLOT_RESERVED")
+                .status(SagaStatus.DOCTOR_VALIDATED)
+                .currentStep("DOCTOR_VALIDATED")
                 .createdAt(LocalDateTime.now())
                 .build();
 
         sagaStateRepository.save(sagaState);
 
+        // Publish AppointmentCreatedEvent để auth-service có thể lấy thông tin patient
         AppointmentCreatedEvent event = AppointmentCreatedEvent.builder()
                 .sagaId(sagaId)
                 .appointmentId(appointment.getId())
@@ -197,11 +202,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-
         String partitionKey = appointment.getId().toString();
         kafkaTemplate.send(topics.getAppointmentCreated(), partitionKey, event);
 
-        log.info("Đã publish AppointmentCreatedEvent cho async enrichment: sagaId={}, appointmentId={}, partitionKey={}",
+        log.info("Đã publish AppointmentCreatedEvent để auth-service lấy thông tin patient: sagaId={}, appointmentId={}, partitionKey={}",
                 sagaId, appointment.getId(), partitionKey);
 
         PaymentUrlResponse paymentUrlResponse = createPaymentUrl(appointment.getId(), appointment.getConsultationFee());
@@ -248,7 +252,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .appointmentId(appointment.getId())
                 .doctorId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())
-                .doctorEmail(appointment.getDoctorEmail())
+                .doctorPhone(appointment.getDoctorPhone())
                 .specialtyName(appointment.getSpecialtyName())
                 .patientId(appointment.getPatientUserId())
                 .patientName(appointment.getPatientName())
@@ -556,14 +560,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
 
-    private DoctorValidationResponse validateInParallel(UUID patientId, UUID doctorId) {
-        long startTime = System.currentTimeMillis();
+    private DoctorResponse validateInParallel(UUID patientId, UUID doctorId) {
 
         CompletableFuture<Void> patientValidation = CompletableFuture.runAsync(() -> 
             validatePatientSync(patientId), validationExecutor
         );
         
-        CompletableFuture<DoctorValidationResponse> doctorValidation = CompletableFuture.supplyAsync(() -> 
+        CompletableFuture<DoctorResponse> doctorValidation = CompletableFuture.supplyAsync(() ->
             validateDoctorSync(doctorId), validationExecutor
         );
         
@@ -603,7 +606,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
 
-    private DoctorValidationResponse validateDoctorSync(UUID doctorId) {
+    private DoctorResponse validateDoctorSync(UUID doctorId) {
         // Validate user tồn tại và active
         UserValidationResponse validation = authServiceClient.validateUser(doctorId, "DOCTOR");
         
@@ -622,9 +625,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new CustomException(ErrorCode.DOCTOR_NOT_FOUND);
         }
 
-        DoctorValidationResponse doctorValidation = userProfileServiceClient.validateDoctor(doctorId);
+        DoctorResponse doctorValidation = userProfileServiceClient.validateDoctor(doctorId);
         
-        if (!doctorValidation.isApproved()) {
+        if (!doctorValidation.getApproved()) {
             log.error("Doctor chưa được approve: {}", doctorId);
             throw new CustomException(ErrorCode.DOCTOR_NOT_APPROVED);
         }
