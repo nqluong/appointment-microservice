@@ -65,6 +65,8 @@ kafka:
   topics:
     payment-completed: ${PAYMENT_COMPLETED_TOPIC:payment-completed-topic}
     payment-failed: ${PAYMENT_FAILED_TOPIC:payment-failed-topic}
+    appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled}
+    payment-refund-processed: ${PAYMENT_REFUND_PROCESSED_TOPIC:payment-refund-processed}
 
 services:
   appointment:

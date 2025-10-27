@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.project.config.PaymentKafkaTopics;
-import org.project.dto.events.PaymentCompletedEvent;
-import org.project.dto.events.PaymentFailedEvent;
+import org.project.events.PaymentCompletedEvent;
+import org.project.events.PaymentFailedEvent;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.model.Payment;

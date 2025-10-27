@@ -5,6 +5,7 @@ import lombok.experimental.FieldDefaults;
 import org.project.enums.RefundType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -17,6 +18,7 @@ public class PaymentRefundRequest {
     UUID paymentId;
     UUID appointmentId;
     String reason;
+    LocalDate appointmentDate;
 
     RefundType refundType;
     BigDecimal customRefundAmount;

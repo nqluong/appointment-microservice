@@ -8,7 +8,6 @@ import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.response.PaymentResponse;
 import org.project.model.Payment;
 
-import java.util.UUID;
 
 @Mapper(
         componentModel = "spring",

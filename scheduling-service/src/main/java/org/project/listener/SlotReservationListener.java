@@ -1,6 +1,6 @@
 package org.project.listener;
 
-import org.project.dto.events.AppointmentCancelledEvent;
+import org.project.events.AppointmentCancelledEvent;
 import org.project.repository.DoctorAvailableSlotRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -26,8 +26,8 @@ public class SlotReservationListener {
     )
     @Transactional
     public void handleAppointmentCancelled(AppointmentCancelledEvent event) {
-        log.info("Nhận AppointmentCancelledEvent: sagaId={}, slotId={}",
-                event.getSagaId(), event.getSlotId());
+        log.info("Nhận AppointmentCancelledEvent: slotId={}",
+                 event.getSlotId());
 
         doctorAvailableSlotRepository.findById(event.getSlotId()).ifPresentOrElse(
                 slot -> {

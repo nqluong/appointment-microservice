@@ -1,7 +1,10 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.project.dto.request.PaymentRefundRequest;
 import org.project.enums.RefundType;
@@ -11,11 +14,8 @@ import org.project.model.Payment;
 import org.project.service.RefundPolicyService;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -36,8 +36,8 @@ public class RefundPolicyServiceImpl implements RefundPolicyService {
         return switch (refundType) {
             case FULL_REFUND -> calculateFullRefund(payment);
             case CUSTOM_AMOUNT -> calculateCustomRefund(payment, request);
-            case POLICY_BASED -> //calculatePolicyBasedRefund(payment);
-                throw new CustomException(ErrorCode.FEATURE_NOT_AVAILABLE, "Chức năng hoàn tiền theo chính sách hiện không khả dụng");
+            case POLICY_BASED -> calculatePolicyBasedRefund(payment, request);
+            default -> throw new CustomException(ErrorCode.FEATURE_NOT_AVAILABLE, "Chức năng hoàn tiền theo chính sách hiện không khả dụng");
         };
     }
 
@@ -68,26 +68,22 @@ public class RefundPolicyServiceImpl implements RefundPolicyService {
         }
     }
 
-//    private BigDecimal calculatePolicyBasedRefund(Payment payment) {
-//        LocalDateTime cancellationTime = LocalDateTime.now();
-//        LocalDate appointmentDate = payment.getAppointment().getAppointmentDate();
-//
-//        if (appointmentDate == null) {
-//            throw new IllegalArgumentException("Ngày hẹn không được để trống");
-//        }
-//
-//        BigDecimal refundPercentage = calculateRefundPercentage(appointmentDate, cancellationTime);
-//        BigDecimal refundAmount = payment.getAmount()
-//                .multiply(refundPercentage)
-//                .setScale(2, RoundingMode.HALF_UP);
-//
-//        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-//            throw new CustomException(ErrorCode.INVALID_REFUND_AMOUNT,
-//                    "Số tiền hoàn trả tính toán phải lớn hơn 0");
-//        }
-//
-//        return refundAmount;
-//    }
+    private BigDecimal calculatePolicyBasedRefund(Payment payment, PaymentRefundRequest request) {
+        LocalDateTime cancellationTime = LocalDateTime.now();
+        LocalDate appointmentDate = request.getAppointmentDate();
+
+        BigDecimal refundPercentage = calculateRefundPercentage(appointmentDate, cancellationTime);
+        BigDecimal refundAmount = payment.getAmount()
+                .multiply(refundPercentage)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CustomException(ErrorCode.INVALID_REFUND_AMOUNT,
+                    "Số tiền hoàn trả tính toán phải lớn hơn 0");
+        }
+
+        return refundAmount;
+    }
 
     @Override
     public BigDecimal calculateRefundPercentage(LocalDate appointmentDate, LocalDateTime cancellationDateTime) {

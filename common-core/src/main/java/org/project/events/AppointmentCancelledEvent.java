@@ -1,15 +1,11 @@
-package org.project.dto.events;
+package org.project.events;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
@@ -18,32 +14,26 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppointmentCancelledEvent {
-    // Appointment info
     UUID appointmentId;
     UUID slotId;
-    
-    // Patient info
+    LocalDateTime cancelledAt;
+    String cancelledBy; // USER, DOCTOR, ADMIN
+    LocalDate appointmentDate;
+
     UUID patientUserId;
     String patientName;
     String patientEmail;
     String patientPhone;
-    
-    // Doctor info
+
     UUID doctorUserId;
     String doctorName;
     String doctorEmail;
     String specialtyName;
-    
-    // Appointment details
-    LocalDate appointmentDate;
+
     LocalTime startTime;
     LocalTime endTime;
-    
-    // Cancellation info
+
     String reason;
     String transactionId;
-    
-    // Metadata
-    String sagaId;
     LocalDateTime timestamp;
 }

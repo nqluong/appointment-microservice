@@ -44,6 +44,7 @@ kafka:
     appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
     appointment-confirmed: ${APPOINTMENT_CONFIRMED_TOPIC:appointment-confirmed-topic}
     appointment-cancelled: ${APPOINTMENT_CANCELLED_TOPIC:appointment-cancelled-topic}
+    appointment-cancellation-initiated: ${APPOINTMENT_CANCELLATION_INITIATED_TOPIC:appointment-cancellation-initiated}
 
     # consume
     slot-reserved: ${SLOT_RESERVED_TOPIC:slot-reserved-topic}
@@ -52,6 +53,7 @@ kafka:
     validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
     payment-completed: ${PAYMENT_COMPLETED_TOPIC:payment-completed-topic}
     payment-failed: ${PAYMENT_FAILED_TOPIC:payment-failed-topic}
+    payment-refund-processed: ${PAYMENT_REFUND_PROCESSED_TOPIC:payment-refund-processed}
 
 server:
   port: 0

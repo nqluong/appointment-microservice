@@ -1,18 +1,18 @@
 package org.project.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
-import java.util.UUID;
 
 public interface AppointmentService {
     PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
@@ -28,6 +28,11 @@ public interface AppointmentService {
     AppointmentResponse createAppointment(CreateAppointmentRequest request);
 
     AppointmentResponse getAppointment(UUID appointmentId);
+
+    AppointmentResponse cancelAppointment(UUID appointmentId, String reason);
+
+    void updateAppointmentRefundStatus(UUID appointmentId, boolean refundSuccess,
+                                       BigDecimal refundAmount, String refundType);
 
     PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status, Pageable pageable);
 

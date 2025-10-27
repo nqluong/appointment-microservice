@@ -1,15 +1,19 @@
 package org.project.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CancelAppointmentRequest {
-    @Size(max = 500, message = "Lý do hủy không được vượt quá 500 ký tự")
-    String reason;
+    
+    @NotBlank(message = "Lý do hủy không được để trống")
+    @Size(min = 5, max = 500, message = "Lý do hủy phải có từ 5 đến 500 ký tự")
+    private String reason;
 }

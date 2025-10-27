@@ -1,17 +1,13 @@
-package org.project.dto.events;
+package org.project.events;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
-
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
@@ -29,7 +25,7 @@ public class AppointmentConfirmedEvent {
 
     UUID doctorUserId;
     String doctorName;
-    String doctorEmail;
+    String doctorPhone;
     String specialtyName;
 
     LocalDate appointmentDate;
@@ -47,4 +43,3 @@ public class AppointmentConfirmedEvent {
     String sagaId;
     LocalDateTime timestamp;
 }
-

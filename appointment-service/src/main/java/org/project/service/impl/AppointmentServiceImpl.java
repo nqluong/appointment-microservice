@@ -15,7 +15,6 @@ import org.project.client.SchedulingServiceClient;
 import org.project.client.UserProfileServiceClient;
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.PageResponse;
-import org.project.dto.events.AppointmentCreatedEvent;
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.request.SlotReservationRequest;
@@ -31,12 +30,14 @@ import org.project.enums.PaymentMethod;
 import org.project.enums.PaymentType;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
+import org.project.events.AppointmentCreatedEvent;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.mapper.AppointmentMapper;
 import org.project.mapper.PageMapper;
 import org.project.model.Appointment;
 import org.project.model.AppointmentSagaState;
+import org.project.producer.AppointmentEventProducer;
 import org.project.repository.AppointmentRepository;
 import org.project.repository.SagaStateRepository;
 import org.project.service.AppointmentService;
@@ -65,6 +66,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     AuthServiceClient authServiceClient;
     UserProfileServiceClient userProfileServiceClient;
     PaymentServiceClient paymentServiceClient;
+    AppointmentEventProducer appointmentEventProducer;
 
     PageMapper pageMapper;
     AppointmentMapper appointmentMapper;
@@ -268,6 +270,85 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .createdAt(appointment.getCreatedAt())
                 .updatedAt(appointment.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponse cancelAppointment(UUID appointmentId, String reason) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+
+        if (appointment.getStatus() == Status.CANCELLED) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "Appointment already cancelled");
+        }
+
+        if (appointment.getStatus() == Status.CANCELLING) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "Appointment cancellation is already in progress");
+        }
+
+        if (appointment.getStatus() == Status.COMPLETED) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "Cannot cancel completed appointment");
+        }
+
+        appointment.setStatus(Status.CANCELLING);
+        appointment.setNotes(reason);
+        appointment.setUpdatedAt(LocalDateTime.now());
+        
+        appointmentRepository.save(appointment);
+
+        try {
+            appointmentEventProducer.publishAppointmentCancellationInitiated(
+                    appointmentId,
+                    appointment.getPatientUserId(),
+                    appointment.getDoctorUserId(),
+                    reason,
+                    "USER",
+                    appointment.getAppointmentDate(),
+                    appointment.getStartTime().toString()
+            );
+        } catch (Exception e) {
+            log.error("Failed to publish cancellation initiated event for appointment: {}", appointmentId, e);
+        }
+
+        return getAppointment(appointmentId);
+    }
+
+    @Override
+    @Transactional
+    public void updateAppointmentRefundStatus(UUID appointmentId, boolean refundSuccess, 
+                                            BigDecimal refundAmount, String refundType) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+        
+        appointment.setUpdatedAt(LocalDateTime.now());
+        
+        // Nếu refund thành công và appointment đang ở trạng thái CANCELLING, chuyển sang CANCELLED
+        if (refundSuccess && appointment.getStatus() == Status.CANCELLING) {
+            appointment.setStatus(Status.CANCELLED);
+            appointmentRepository.save(appointment);
+            
+            // Publish event cancelled để scheduling service có thể release slot
+            try {
+                appointmentEventProducer.publishAppointmentCancelled(
+                        appointmentId,
+                        appointment.getPatientUserId(),
+                        appointment.getDoctorUserId(),
+                        appointment.getSlotId(),
+                        appointment.getNotes(),
+                        "SYSTEM",
+                        appointment.getAppointmentDate(),
+                        appointment.getStartTime()
+                );
+                log.info("Published appointment cancelled event after successful refund for appointment: {}", appointmentId);
+            } catch (Exception e) {
+                log.error("Failed to publish appointment cancelled event after refund for appointment: {}", appointmentId, e);
+            }
+        } else {
+            appointmentRepository.save(appointment);
+        }
+        
+        log.info("Updated appointment {} refund status: success={}, amount={}, type={}", 
+                appointmentId, refundSuccess, refundAmount, refundType);
     }
 
     @Override
@@ -575,9 +656,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             return doctorValidation.get();
             
         } catch (Exception e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof CustomException) {
-                throw (CustomException) cause;
+            if (e.getCause() instanceof CustomException customException) {
+                throw customException;
             }
             log.error("Validation failed with unexpected error", e);
             throw new CustomException(ErrorCode.VALIDATION_FAILED);
@@ -644,8 +724,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         boolean isValidTransition = switch (currentStatus) {
-            case PENDING -> newStatus == Status.CONFIRMED || newStatus == Status.CANCELLED;
-            case CONFIRMED -> newStatus == Status.COMPLETED || newStatus == Status.CANCELLED;
+            case PENDING -> newStatus == Status.CONFIRMED || newStatus == Status.CANCELLING;
+            case CONFIRMED -> newStatus == Status.COMPLETED || newStatus == Status.CANCELLING;
+            case CANCELLING -> newStatus == Status.CANCELLED;
             case COMPLETED -> false;
             case CANCELLED -> false;
             default -> false;
@@ -676,6 +757,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         if (appointment.getStatus() == Status.CANCELLED) {
+            throw new CustomException(ErrorCode.APPOINTMENT_ALREADY_CANCELLED);
+        }
+
+        if (appointment.getStatus() == Status.CANCELLING) {
             throw new CustomException(ErrorCode.APPOINTMENT_ALREADY_CANCELLED);
         }
     }

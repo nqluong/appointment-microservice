@@ -7,8 +7,6 @@ import org.mapstruct.ReportingPolicy;
 import org.project.dto.response.DoctorResponse;
 import org.project.repository.DoctorProjection;
 
-import java.util.List;
-
 @Mapper(
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.IGNORE,

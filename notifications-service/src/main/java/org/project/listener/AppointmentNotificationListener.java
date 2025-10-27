@@ -2,10 +2,10 @@ package org.project.listener;
 
 import java.time.LocalDateTime;
 
-import org.project.dto.events.AppointmentCancelledEvent;
-import org.project.dto.events.AppointmentConfirmedEvent;
 import org.project.dto.request.AppointmentFailureNotificationRequest;
 import org.project.dto.request.PaymentNotificationRequest;
+import org.project.events.AppointmentCancelledEvent;
+import org.project.events.AppointmentConfirmedEvent;
 import org.project.service.AsyncEmailService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;

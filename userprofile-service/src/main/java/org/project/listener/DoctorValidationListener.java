@@ -5,11 +5,11 @@ import java.util.UUID;
 
 import org.project.client.AuthServiceClient;
 import org.project.config.UserProfileKafkaTopics;
-import org.project.dto.events.AppointmentCreatedEvent;
-import org.project.dto.events.DoctorValidatedEvent;
-import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.MedicalProfileResponse;
 import org.project.dto.response.UserBasicInfoResponse;
+import org.project.events.AppointmentCreatedEvent;
+import org.project.events.DoctorValidatedEvent;
+import org.project.events.ValidationFailedEvent;
 import org.project.model.Specialty;
 import org.project.model.UserProfile;
 import org.project.repository.MedicalProfileRepository;

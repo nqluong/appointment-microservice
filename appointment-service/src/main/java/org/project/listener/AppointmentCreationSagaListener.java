@@ -4,14 +4,16 @@ import java.time.LocalDateTime;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
-import org.project.dto.events.PatientValidatedEvent;
-import org.project.dto.events.ValidationFailedEvent;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
+import org.project.events.PatientValidatedEvent;
+import org.project.events.PaymentRefundProcessedEvent;
+import org.project.events.ValidationFailedEvent;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.model.Appointment;
 import org.project.model.AppointmentSagaState;
+import org.project.producer.AppointmentEventProducer;
 import org.project.repository.AppointmentRepository;
 import org.project.repository.SagaStateRepository;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -34,6 +36,7 @@ public class AppointmentCreationSagaListener {
     SagaStateRepository sagaStateRepository;
     KafkaTemplate<String, Object> kafkaTemplate;
     AppointmentKafkaTopics topics;
+    AppointmentEventProducer appointmentEventProducer;
 
 
     @KafkaListener(
@@ -114,6 +117,72 @@ public class AppointmentCreationSagaListener {
         ack.acknowledge();
     }
 
+    @KafkaListener(
+            topics = "payment.refund.processed",
+            groupId = "appointment-service",
+            concurrency = "3"
+    )
+    @Transactional
+    public void handlePaymentRefundProcessed(PaymentRefundProcessedEvent event, Acknowledgment ack) {
+        log.info("Nhận PaymentRefundProcessedEvent: appointmentId={}, success={}", 
+                event.getAppointmentId(), event.isSuccess());
+
+        try {
+            Appointment appointment = appointmentRepository.findById(event.getAppointmentId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+
+            // Chỉ xử lý nếu appointment đang ở trạng thái CANCELLING
+            if (appointment.getStatus() == Status.CANCELLING) {
+                if (event.isSuccess()) {
+                    // Refund thành công, chuyển sang CANCELLED và publish event cancelled
+                    appointment.setStatus(Status.CANCELLED);
+                    appointmentRepository.save(appointment);
+
+                    // Publish event cancelled để scheduling service có thể release slot
+                    appointmentEventProducer.publishAppointmentCancelled(
+                            appointment.getId(),
+                            appointment.getPatientUserId(),
+                            appointment.getDoctorUserId(),
+                            appointment.getSlotId(),
+                            appointment.getNotes(),
+                            "SYSTEM",
+                            appointment.getAppointmentDate(),
+                            appointment.getStartTime()
+                    );
+
+                    log.info("Appointment {} đã được cancelled sau khi refund thành công", appointment.getId());
+                } else {
+                    // Refund thất bại, vẫn chuyển sang CANCELLED nhưng ghi log lỗi
+                    appointment.setStatus(Status.CANCELLED);
+                    appointment.setNotes(appointment.getNotes() + " | REFUND_FAILED: " + event.getErrorMessage());
+                    appointmentRepository.save(appointment);
+
+                    // Vẫn publish event cancelled để release slot
+                    appointmentEventProducer.publishAppointmentCancelled(
+                            appointment.getId(),
+                            appointment.getPatientUserId(),
+                            appointment.getDoctorUserId(),
+                            appointment.getSlotId(),
+                            appointment.getNotes(),
+                            "SYSTEM",
+                            appointment.getAppointmentDate(),
+                            appointment.getStartTime()
+                    );
+
+                    log.warn("Appointment {} đã được cancelled nhưng refund thất bại: {}", 
+                            appointment.getId(), event.getErrorMessage());
+                }
+            } else {
+                log.warn("Appointment {} không ở trạng thái CANCELLING, bỏ qua event refund", 
+                        appointment.getId());
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý PaymentRefundProcessedEvent cho appointment: {}", 
+                    event.getAppointmentId(), e);
+        } finally {
+            ack.acknowledge();
+        }
+    }
 
     private void updateSagaState(String sagaId, SagaStatus status, String step) {
         AppointmentSagaState sagaState = sagaStateRepository.findById(sagaId)

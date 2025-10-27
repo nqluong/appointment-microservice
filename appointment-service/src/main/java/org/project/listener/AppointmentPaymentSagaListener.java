@@ -5,11 +5,11 @@ import java.util.UUID;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
-import org.project.dto.events.AppointmentConfirmedEvent;
-import org.project.dto.events.PaymentCompletedEvent;
-import org.project.dto.events.PaymentFailedEvent;
 import org.project.enums.SagaStatus;
 import org.project.enums.Status;
+import org.project.events.AppointmentConfirmedEvent;
+import org.project.events.PaymentCompletedEvent;
+import org.project.events.PaymentFailedEvent;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.model.Appointment;

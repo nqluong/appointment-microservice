@@ -47,6 +47,16 @@ public class KafkaTopicConfig {
     }
 
     @Bean
+    public NewTopic appointmentCancellationInitiatedTopic() {
+        return TopicBuilder.name(topics.getAppointmentCancellationInitiated())
+                .partitions(NUM_PARTITIONS)
+                .replicas(REPLICATION_FACTOR)
+                .config("min.insync.replicas", "1")
+                .config("retention.ms", "604800000")
+                .build();
+    }
+
+    @Bean
     public NewTopic slotReservedTopic() {
         return TopicBuilder.name(topics.getSlotReserved())
                 .partitions(NUM_PARTITIONS)
@@ -99,6 +109,16 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic paymentFailedTopic() {
         return TopicBuilder.name(topics.getPaymentFailed())
+                .partitions(NUM_PARTITIONS)
+                .replicas(REPLICATION_FACTOR)
+                .config("min.insync.replicas", "1")
+                .config("retention.ms", "604800000")
+                .build();
+    }
+
+    @Bean
+    public NewTopic paymentRefundProcessedTopic() {
+        return TopicBuilder.name("payment.refund.processed")
                 .partitions(NUM_PARTITIONS)
                 .replicas(REPLICATION_FACTOR)
                 .config("min.insync.replicas", "1")

@@ -1,4 +1,4 @@
-package org.project.dto.events;
+package org.project.events;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -11,10 +11,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AppointmentConfirmedEvent {
+public class ValidationFailedEvent {
     String sagaId;
     UUID appointmentId;
-    UUID slotId;
     String reason;
+    String failedService;
     LocalDateTime timestamp;
 }

@@ -23,7 +23,6 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PaymentValidationServiceImpl implements PaymentValidationService {
     PaymentRepository paymentRepository;
-//    AppointmentRepository appointmentRepository;
 
     @Override
     public void validateCreatePaymentRequest(CreatePaymentRequest request) {

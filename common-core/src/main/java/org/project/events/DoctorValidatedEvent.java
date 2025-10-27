@@ -1,11 +1,10 @@
-package org.project.dto.events;
+package org.project.events;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -13,14 +12,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SlotReservedEvent {
+public class DoctorValidatedEvent {
     String sagaId;
-    UUID slotId;
     UUID appointmentId;
-    LocalDate appointmentDate;
-    LocalTime startTime;
-    LocalTime endTime;
-    UUID reservedBy;
     UUID doctorUserId;
+
+    String doctorName;
+    String doctorEmail;
+    String doctorPhone;
+    String specialtyName;
+    BigDecimal consultationFee;
+
     LocalDateTime timestamp;
 }

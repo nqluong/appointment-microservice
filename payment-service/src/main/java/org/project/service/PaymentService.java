@@ -31,6 +31,6 @@ public interface PaymentService {
 
     void processProcessingPayments();
 
-//    PaymentRefundResponse refundPayment(PaymentRefundRequest request);
+    PaymentRefundResponse refundPayment(PaymentRefundRequest request);
 
 }

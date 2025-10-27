@@ -1,9 +1,8 @@
-package org.project.dto.events;
+package org.project.events;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -12,15 +11,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class DoctorValidatedEvent {
-    String sagaId;
+public class PaymentFailedEvent {
+    UUID paymentId;
     UUID appointmentId;
-    UUID doctorUserId;
-
-    String doctorName;
-    String doctorEmail;
-    String specialtyName;
-    BigDecimal consultationFee;
-
+    String transactionId;
+    String reason;
+    String failedService;
     LocalDateTime timestamp;
+
+    boolean confirmedFailure;
 }
+

@@ -9,8 +9,6 @@ import java.util.UUID;
 
 import org.project.client.AppointmentServiceClient;
 import org.project.config.PaymentKafkaTopics;
-import org.project.dto.events.PaymentCompletedEvent;
-import org.project.dto.events.PaymentFailedEvent;
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.request.PaymentCallbackRequest;
 import org.project.dto.request.PaymentRefundRequest;
@@ -20,6 +18,8 @@ import org.project.dto.response.PaymentUrlResponse;
 import org.project.dto.response.RefundCalculationResult;
 import org.project.enums.PaymentStatus;
 import org.project.enums.PaymentType;
+import org.project.events.PaymentCompletedEvent;
+import org.project.events.PaymentFailedEvent;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.gateway.PaymentGateway;
@@ -169,25 +169,23 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     // Xử lý hoàn tiền khi hủy
-//    @Override
-//    public PaymentRefundResponse refundPayment(PaymentRefundRequest request) {
-//        // Validate request
-//        paymentRefundValidationService.validateRefundRequest(request);
-//
-//        Payment payment = paymentResolutionService.resolvePayment(
-//                request.getPaymentId(), request.getAppointmentId());
-//
-//        paymentRefundValidationService.validatePaymentForRefund(payment, request);
-//
-//        // Tính phần trăm hoàn tiền dựa trên thời gian hủy
-//        RefundCalculationResult calculationResult = calculateRefundAmount(payment, request);
-//
-//        // Xử lý hoàn tiền qua cổng thanh toán
-//        String refundTxnId = transactionIdGenerator.generateRefundTransactionId();
-//        PaymentRefundResult gatewayResult = processRefundThroughGateway(
-//                payment, calculationResult.getRefundAmount(), refundTxnId, request);
-//        return handleRefundResult(payment, gatewayResult, refundTxnId, calculationResult);
-//    }
+    @Override
+    public PaymentRefundResponse refundPayment(PaymentRefundRequest request) {
+
+        Payment payment = paymentResolutionService.resolvePayment(
+                request.getPaymentId(), request.getAppointmentId());
+
+        paymentRefundValidationService.validatePaymentForRefund(payment, request);
+
+        // Tính phần trăm hoàn tiền dựa trên thời gian hủy
+        RefundCalculationResult calculationResult = calculateRefundAmount(payment, request);
+
+        // Xử lý hoàn tiền qua cổng thanh toán
+        String refundTxnId = transactionIdGenerator.generateRefundTransactionId();
+        PaymentRefundResult gatewayResult = processRefundThroughGateway(
+                payment, calculationResult.getRefundAmount(), refundTxnId, request);
+        return handleRefundResult(payment, gatewayResult, refundTxnId, calculationResult);
+    }
 
     @Override
     public PaymentResponse getPaymentById(UUID paymentId) {
@@ -318,10 +316,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     // Tính số tiền có thể hoàn
     private RefundCalculationResult calculateRefundAmount(Payment payment, PaymentRefundRequest request) {
-//        BigDecimal refundPercentage = refundPolicyService.calculateRefundPercentage(
-//                payment.getAppointment().getAppointmentDate(),
-//                LocalDateTime.now()
-//        );
 
         BigDecimal refundAmount = refundPolicyService.calculateRefundAmount(payment, request);
 

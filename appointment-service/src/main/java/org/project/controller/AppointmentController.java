@@ -10,10 +10,12 @@ import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.common.security.util.SecurityUtils;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
+import org.project.dto.request.CancelAppointmentRequest;
 import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
 import org.project.service.AppointmentService;
+import org.project.producer.AppointmentEventProducer;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -88,6 +90,22 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> getAppointment(@PathVariable UUID appointmentId) {
 
         AppointmentResponse response = appointmentService.getAppointment(appointmentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{appointmentId}/cancel")
+    @PreAuthorize("hasRole('PATIENT') or hasRole('DOCTOR') or hasRole('ADMIN')")
+    public ResponseEntity<AppointmentResponse> cancelAppointment(
+            @PathVariable UUID appointmentId,
+            @Valid @RequestBody CancelAppointmentRequest request) {
+
+        log.info("Cancelling appointment {} with reason: {}", appointmentId, request.getReason());
+
+        AppointmentResponse response = appointmentService.cancelAppointment(
+                appointmentId,
+                request.getReason()
+        );
+
         return ResponseEntity.ok(response);
     }
 

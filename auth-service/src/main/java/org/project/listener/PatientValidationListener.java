@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 
 import org.project.client.UserProfileServiceClient;
 import org.project.config.AuthKafkaTopics;
-import org.project.dto.events.AppointmentCreatedEvent;
-import org.project.dto.events.PatientValidatedEvent;
-import org.project.dto.events.ValidationFailedEvent;
 import org.project.dto.response.UserProfileResponse;
+import org.project.events.AppointmentCreatedEvent;
+import org.project.events.PatientValidatedEvent;
+import org.project.events.ValidationFailedEvent;
 import org.project.model.User;
 import org.project.repository.UserRepository;
 import org.springframework.kafka.annotation.KafkaListener;

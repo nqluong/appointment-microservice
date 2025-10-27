@@ -1,8 +1,9 @@
 package org.project.config;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+
+import lombok.Data;
 
 @Configuration
 @ConfigurationProperties(prefix = "kafka.topics")
@@ -12,6 +13,7 @@ public class AppointmentKafkaTopics {
     private String appointmentCreated;
     private String appointmentConfirmed;
     private String appointmentCancelled;
+    private String appointmentCancellationInitiated;
 
     //consume
     private String slotReserved;
