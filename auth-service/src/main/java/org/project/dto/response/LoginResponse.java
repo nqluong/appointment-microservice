@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -17,4 +18,5 @@ public class LoginResponse {
     String refreshToken;
     UUID userId;
     String email;
+    List<String> userRoles;
 }

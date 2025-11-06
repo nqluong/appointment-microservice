@@ -12,7 +12,7 @@ public class AuthKafkaTopics {
     //publish
     private String patientValidated;
     private String validationFailed;
-
+    private String userRegistered;
     //consume
     private String appointmentCreated;
 }

@@ -1,6 +1,7 @@
 package org.project.listener;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 import org.project.config.AppointmentKafkaTopics;
 import org.project.dto.events.AppointmentCancelledEvent;
@@ -48,7 +49,6 @@ public class AppointmentCreationSagaListener {
     public void handleValidationFailed(ValidationFailedEvent event, Acknowledgment ack) {
         log.error("Validation failed: sagaId={}, reason={}",
                 event.getSagaId(), event.getReason());
-
         // Cập nhật saga state
         AppointmentSagaState sagaState = sagaStateRepository.findById(event.getSagaId())
                 .orElseThrow();

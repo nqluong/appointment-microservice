@@ -45,6 +45,7 @@ kafka:
 
     #consumer
     appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
+    user-registered: ${USER_REGISTERED_TOPIC:user-registered-topic}
 
 redis:
   host: ${REDIS_HOST:localhost}

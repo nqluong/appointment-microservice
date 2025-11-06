@@ -28,7 +28,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
                          AuthenticationException authException) throws IOException, ServletException {
 
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .succes(false)
+                .success(false)
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .message("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn")
                 .path(request.getRequestURI())

@@ -9,6 +9,8 @@ public interface AuthService {
 
     TokenResponse refreshToken(RefreshTokenRequest request);
 
+    void register(RegisterRequest request);
+
     void logout(LogoutRequest request);
 
     VerifyTokenResponse verifyToken(VerifyTokenRequest request);

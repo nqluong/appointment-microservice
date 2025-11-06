@@ -81,6 +81,11 @@ public class DoctorServiceImpl implements DoctorService {
 
     private List<UUID> getDoctorUserIds() {
         UserIdsResponse userIdsResponse = authServiceClient.getUserIdsByRole("DOCTOR");
+        log.info("Lấy được {} userIds của bác sĩ từ Auth-Service", userIdsResponse.getUserIds().size());
+        log.info("UserIds: {}", userIdsResponse.getUserIds());
+        if(userIdsResponse.getUserIds().isEmpty()) {
+            log.info("Không tìm thấy userIds nào với role DOCTOR từ Auth-Service");
+        }
         return userIdsResponse.getUserIds();
     }
 }

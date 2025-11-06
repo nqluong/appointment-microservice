@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 import org.project.dto.request.LoginRequest;
+import org.project.dto.request.RegisterRequest;
 import org.project.dto.response.LoginResponse;
 import org.project.dto.response.TokenResponse;
 import org.project.exception.CustomException;
@@ -36,7 +37,7 @@ public class StandardAuthenticationManager implements AuthenticationManager {
             List<String> roles = getUserRoles(user);
             TokenResponse tokenResponse = generateTokens(user, roles);
 
-            return buildLoginResponse(user, tokenResponse);
+            return buildLoginResponse(user, roles, tokenResponse);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
@@ -57,12 +58,13 @@ public class StandardAuthenticationManager implements AuthenticationManager {
         return tokenService.generateTokens(user.getId(), user.getUsername(), user.getEmail(),roles);
     }
 
-    private LoginResponse buildLoginResponse(User user, TokenResponse tokenResponse) {
+    private LoginResponse buildLoginResponse(User user, List<String> roles,TokenResponse tokenResponse) {
         return LoginResponse.builder()
                 .accessToken(tokenResponse.getAccessToken())
                 .refreshToken(tokenResponse.getRefreshToken())
                 .email(user.getEmail())
                 .userId(user.getId())
+                .userRoles(roles)
                 .build();
     }
 }

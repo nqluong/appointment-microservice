@@ -14,7 +14,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ErrorResponse {
-    boolean succes = false;
+    boolean success = false;
     int code;
     String message;
     String details;

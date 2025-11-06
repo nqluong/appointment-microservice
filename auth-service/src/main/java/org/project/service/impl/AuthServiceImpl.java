@@ -21,12 +21,12 @@ public class AuthServiceImpl implements AuthService {
     private final SessionManager sessionManager;
     private final TokenVerificationService tokenVerificationService;
     private final PasswordResetService passwordResetService;
+    private final UserAuthenticationService userAuthenticationService;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
         return authenticationManager.authenticate(loginRequest);
     }
-
 
     @Override
     public TokenResponse refreshToken(RefreshTokenRequest request) {
@@ -51,6 +51,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public PasswordResetResponse resetPassword(PasswordResetRequest request) {
         return passwordResetService.passwordReset(request);
+    }
+
+    @Override
+    public void register(RegisterRequest request) {
+        userAuthenticationService.registerUser(request);
     }
 
     @Override

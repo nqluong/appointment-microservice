@@ -41,6 +41,7 @@ kafka:
   topics:
     patient-validated: ${PATIENT_VALIDATED_TOPIC:patient-validated-topic}
     validation-failed: ${VALIDATION_FAILED_TOPIC:validation-failed-topic}
+    user-registered: ${USER_REGISTERED_TOPIC:user-registered-topic}
 
     appointment-created: ${APPOINTMENT_CREATED_TOPIC:appointment-created-topic}
 
@@ -68,6 +69,7 @@ app:
   upload:
     dir: uploads/avatars
     max-size: 5242880 # 5MB
+  default-role: ${DEFAULT_ROLE_ID:6e64fe22-a593-4c2e-9fad-9ae101a47e82}
 
 service:
   user-profile:

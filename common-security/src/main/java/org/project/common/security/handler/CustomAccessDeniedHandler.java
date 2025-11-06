@@ -27,7 +27,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException, ServletException {
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .succes(false)
+                .success(false)
                 .code(HttpStatus.FORBIDDEN.value())
                 .message("Bạn không có quyền truy cập tài nguyên này")
                 .path(request.getRequestURI())
