@@ -80,12 +80,18 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     private List<UUID> getDoctorUserIds() {
-        UserIdsResponse userIdsResponse = authServiceClient.getUserIdsByRole("DOCTOR");
-        log.info("Lấy được {} userIds của bác sĩ từ Auth-Service", userIdsResponse.getUserIds().size());
-        log.info("UserIds: {}", userIdsResponse.getUserIds());
-        if(userIdsResponse.getUserIds().isEmpty()) {
-            log.info("Không tìm thấy userIds nào với role DOCTOR từ Auth-Service");
+        try {
+            UserIdsResponse userIdsResponse = authServiceClient.getUserIdsByRole("DOCTOR");
+            log.info("Lấy được {} userIds của bác sĩ từ Auth-Service", userIdsResponse.getUserIds().size());
+            log.info("UserIds: {}", userIdsResponse.getUserIds());
+            if (userIdsResponse == null || userIdsResponse.getUserIds().isEmpty()) {
+                log.info("Không tìm thấy userIds nào với role DOCTOR từ Auth-Service");
+                throw new RuntimeException("Không tìm thấy bác sĩ nào từ Auth-Service");
+            }
+            return userIdsResponse.getUserIds();
+        } catch (Exception ex) {
+            log.error("Lỗi khi gọi Auth-Service để lấy danh sách bác sĩ", ex);
+            throw new RuntimeException("Không thể kết nối tới Auth-Service để lấy danh sách bác sĩ");
         }
-        return userIdsResponse.getUserIds();
     }
 }
