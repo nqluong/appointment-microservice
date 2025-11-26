@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+//@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DoctorWithSlotsResponse {
 
     String userId;
@@ -21,15 +21,15 @@ public class DoctorWithSlotsResponse {
     String phone;
     String email;
     LocalDate birthDate;
-     String avatarUrl;
-     String gender;
+    String avatarUrl;
+    String gender;
 
     // Medical profile information
-     String specialtyName;
-     String licenseNumber;
-     String qualification;
-     Integer yearsOfExperience;
-     BigDecimal consultationFee;
+    String specialtyName;
+    String licenseNumber;
+    String qualification;
+    Integer yearsOfExperience;
+    BigDecimal consultationFee;
 
 
      List<AvailableSlotInfo> availableSlots;

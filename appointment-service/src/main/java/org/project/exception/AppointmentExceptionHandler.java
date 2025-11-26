@@ -15,7 +15,7 @@ public class AppointmentExceptionHandler extends GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
 
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .succes(false)
+                .success(false)
                 .code(HttpStatus.FORBIDDEN.value())
                 .message("Bạn không có quyền truy cập tài nguyên này")
                 .path(extractPath(request))

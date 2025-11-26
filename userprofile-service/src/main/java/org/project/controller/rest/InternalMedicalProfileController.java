@@ -1,4 +1,4 @@
-package org.project.controller;
+package org.project.controller.rest;
 
 import java.util.UUID;
 

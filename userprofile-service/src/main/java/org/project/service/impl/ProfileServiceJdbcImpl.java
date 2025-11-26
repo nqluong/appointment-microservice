@@ -50,14 +50,12 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             ProfileUpdateRequest filteredRequest = strategy.filterFields(request);
 
 
-            //Cập nhật hồ sơ sử dụng yêu cầu đã lọc
             boolean updateSuccess = profileJdbcRepository.updateProfile(userId, filteredRequest);
 
             if (!updateSuccess) {
                 log.warn("Không có trường nào được cập nhật cho userId: {}", userId);
             }
 
-            // Lấy và trả về hồ sơ sau khi cập nhật
             CompleteProfileResponse response = getCompleteProfileFromRepository(userId);
             log.info("Unified profile update completed successfully for userId: {}", userId);
             return response;
@@ -72,7 +70,6 @@ public class ProfileServiceJdbcImpl implements ProfileService {
     }
 
     @Override
-   // @RequireOwnershipOrAdmin(allowedRoles = {"PATIENT", "DOCTOR", "ADMIN"})
     public CompleteProfileResponse getCompleteProfile(UUID userId) {
         try {
             log.info("Getting complete profile for userId: {}", userId);

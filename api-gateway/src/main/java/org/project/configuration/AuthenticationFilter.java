@@ -37,7 +37,9 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/payments/public/vnpay/callback",
             "/api/payments/public/vnpay/return",
             "/api/specialties/public",
-            "/api/schedules/public"
+            "/api/schedules/public",
+            "/api/doctors/public",
+            "/api/doctor-slots/public"
     );
 
 

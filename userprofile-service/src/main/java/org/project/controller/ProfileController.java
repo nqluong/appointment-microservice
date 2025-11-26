@@ -7,18 +7,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.common.security.token.GatewayUserPrincipal;
 import org.project.common.security.util.SecurityUtils;
-import org.project.dto.request.PhotoUploadRequest;
+import org.project.dto.ApiResponse;
+import org.project.dto.ErrorResponse;
 import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileResponse;
-import org.project.dto.response.PhotoUploadResponse;
-import org.project.service.PhotoUploadService;
+import org.project.service.FileStorageService;
 import org.project.service.ProfileService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,7 +30,7 @@ import java.util.UUID;
 @Slf4j
 public class ProfileController {
     private final ProfileService profileService;
-    private final PhotoUploadService photoUploadService;
+    private final FileStorageService fileStorageService;
     private final SecurityUtils securityUtils;
 
     @PutMapping("/update")
@@ -59,21 +62,48 @@ public class ProfileController {
 
     @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequireOwnershipOrAdmin(allowedRoles = {"DOCTOR", "PATIENT"})
-    public ResponseEntity<PhotoUploadResponse> uploadUserPhoto(
+    public ResponseEntity<?> uploadUserPhoto(
             @PathVariable UUID userId,
             @RequestParam("photo") MultipartFile photo) {
 
+        try {
+            if (photo == null || photo.isEmpty()) {
+                log.error("Tệp ảnh trống được gửi lên cho user {}", userId);
+                return ResponseEntity.badRequest().body(
+                    ErrorResponse.builder()
+                        .success(false)
+                        .code(400)
+                        .message("Tệp ảnh không được để trống")
+                        .timestamp(LocalDateTime.now())
+                        .build()
+                );
+            }
 
-        PhotoUploadRequest request = PhotoUploadRequest.builder()
-                .photo(photo)
-                .build();
+            String avatarUrl = fileStorageService.uploadUserPhoto(photo, userId);
 
-        PhotoUploadResponse response = photoUploadService.uploadUserPhoto(userId, request);
-
-        if (response.isSuccess()) {
+            Map<String, String> data = Map.of("avatarUrl", avatarUrl);
+            
+            ApiResponse<Map<String, String>> response = ApiResponse.<Map<String, String>>builder()
+                    .success(true)
+                    .code(200)
+                    .message("Tải lên ảnh đại diện thành công")
+                    .data(data)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+                    
             return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
+            
+        } catch (Exception e) {
+            log.error("Lỗi khi tải lên ảnh cho user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ErrorResponse.builder()
+                    .success(false)
+                    .code(500)
+                    .message("Không thể tải lên ảnh đại diện")
+                    .details(e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .build()
+            );
         }
     }
 }

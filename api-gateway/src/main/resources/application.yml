@@ -35,6 +35,11 @@ spring:
               uri: lb://payment-service
               predicates:
                 - Path=/api/payments/**
+
+            - id: file-service
+              uri: lb://file-service
+              predicates:
+                - Path=/api/files/**
           globalcors:
             cors-configurations:
               '[/**]':

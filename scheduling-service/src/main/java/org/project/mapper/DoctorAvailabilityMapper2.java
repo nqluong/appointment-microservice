@@ -7,6 +7,7 @@ import org.project.dto.response.AvailableSlotInfo;
 import org.project.dto.response.DoctorResponse;
 import org.project.dto.response.DoctorWithSlotsResponse;
 import org.project.model.DoctorAvailableSlot;
+import org.project.util.NameUtils;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,7 +29,7 @@ public final class DoctorAvailabilityMapper2 {
 
         return DoctorWithSlotsResponse.builder()
                 .userId(String.valueOf(doctorResponse.getUserId()))
-                .fullName(doctorResponse.getFullName())
+                .fullName(NameUtils.formatDoctorFullName(doctorResponse.getFullName()))
                 .avatarUrl(doctorResponse.getAvatarUrl())
                 .qualification(doctorResponse.getQualification())
                 .consultationFee(doctorResponse.getConsultationFee())

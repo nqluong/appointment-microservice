@@ -1,7 +1,9 @@
 package org.project.service.impl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.project.client.AuthServiceClient;
 import org.project.dto.PageResponse;
@@ -11,6 +13,7 @@ import org.project.mapper.DoctorMapper;
 import org.project.mapper.PageMapper;
 import org.project.repository.DoctorProjection;
 import org.project.repository.DoctorRepository;
+import org.project.service.AvatarUrlService;
 import org.project.service.DoctorService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,7 @@ public class DoctorServiceImpl implements DoctorService {
     DoctorMapper doctorMapper;
     PageMapper pageMapper;
     AuthServiceClient authServiceClient;
+    AvatarUrlService avatarUrlService;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,7 +50,12 @@ public class DoctorServiceImpl implements DoctorService {
         Page<DoctorProjection> doctorProfilePage = doctorRepository
                 .findApprovedDoctorsByUserIds(doctorUserIds, pageable);
 
-        return pageMapper.toPageResponse(doctorProfilePage, doctorMapper::projectionToResponse);
+        PageResponse<DoctorResponse> response = pageMapper.toPageResponse(doctorProfilePage, doctorMapper::projectionToResponse);
+        
+        // Generate presigned URLs cho avatarUrl (batch)
+        enrichAvatarUrlsBatch(response.getContent());
+        
+        return response;
     }
 
     @Override
@@ -61,7 +70,12 @@ public class DoctorServiceImpl implements DoctorService {
 
         Page<DoctorProjection> doctorPage = doctorRepository.findDoctorsWithFilters(doctorUserIds, specialtyName, pageable);
 
-        return pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
+        PageResponse<DoctorResponse> response = pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
+        
+        // Generate presigned URLs cho avatarUrl (batch)
+        enrichAvatarUrlsBatch(response.getContent());
+        
+        return response;
     }
 
     @Override
@@ -76,7 +90,11 @@ public class DoctorServiceImpl implements DoctorService {
 
         Page<DoctorProjection> doctorPage = doctorRepository.findDoctorsBySpecialtyId(doctorUserIds, specialtyId, pageable);
 
-        return pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
+        PageResponse<DoctorResponse> response = pageMapper.toPageResponse(doctorPage, doctorMapper::projectionToResponse);
+        
+        enrichAvatarUrlsBatch(response.getContent());
+        
+        return response;
     }
 
     private List<UUID> getDoctorUserIds() {
@@ -93,5 +111,35 @@ public class DoctorServiceImpl implements DoctorService {
             log.error("Lỗi khi gọi Auth-Service để lấy danh sách bác sĩ", ex);
             throw new RuntimeException("Không thể kết nối tới Auth-Service để lấy danh sách bác sĩ");
         }
+    }
+    
+    private void enrichAvatarUrlsBatch(List<DoctorResponse> doctors) {
+        if (doctors == null || doctors.isEmpty()) {
+            return;
+        }
+
+        // Lấy danh sách tên file cần generate URL
+        List<String> fileNames = doctors.stream()
+                .map(DoctorResponse::getAvatarUrl)
+                .filter(url -> url != null && !url.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (fileNames.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> urlMap = avatarUrlService.generateBatchPresignedUrls(fileNames);
+
+        doctors.forEach(doctor -> {
+            if (doctor.getAvatarUrl() != null && !doctor.getAvatarUrl().isEmpty()) {
+                String presignedUrl = urlMap.get(doctor.getAvatarUrl());
+                if (presignedUrl != null) {
+                    doctor.setAvatarUrl(presignedUrl);
+                }
+            }
+        });
+
+        log.debug("Đã enrich avatar URLs cho {} bác sĩ", doctors.size());
     }
 }

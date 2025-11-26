@@ -29,18 +29,10 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
     public DoctorResponse getDoctorById(UUID doctorId) {
         try {
             if (useFeignClient) {
-                log.info("🔍 Sử dụng FeignClient để lấy thông tin bác sĩ {}", doctorId);
-                log.info("🔍 Service Discovery: userprofile-service");
-                long startTime = System.currentTimeMillis();
                 DoctorResponse response = userProfileFeignClient.getDoctorById(doctorId);
-                long endTime = System.currentTimeMillis();
-                log.info("✅ FeignClient response: {} (took {}ms)", 
-                        response != null ? "SUCCESS" : "NULL", (endTime - startTime));
                 return response;
             } else {
-                log.info("🔍 Sử dụng RestTemplate để lấy thông tin bác sĩ {}", doctorId);
                 DoctorResponse response = userProfileServiceClient.getDoctorById(doctorId);
-                log.info("✅ RestTemplate response: {}", response != null ? "SUCCESS" : "NULL");
                 return response;
             }
         } catch (Exception e) {
@@ -58,26 +50,20 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
                     pageable.getSort().iterator().next().getDirection().name() : "ASC";
             
             if (useFeignClient) {
-                log.info("🔍 Sử dụng FeignClient để lấy danh sách bác sĩ");
                 PageResponse<DoctorResponse> response = userProfileFeignClient.getDoctors(
                         pageable.getPageNumber(),
                         pageable.getPageSize(),
                         sortBy,
                         sortDir
                 );
-                log.info("✅ FeignClient getDoctors response: {} doctors", 
-                        response != null ? response.getContent().size() : "NULL");
                 return response;
             } else {
-                log.info("🔍 Sử dụng RestTemplate để lấy danh sách bác sĩ");
                 PageResponse<DoctorResponse> response = userProfileServiceClient.getDoctors(
                         pageable.getPageNumber(),
                         pageable.getPageSize(),
                         sortBy,
                         sortDir
                 );
-                log.info("✅ RestTemplate getDoctors response: {} doctors", 
-                        response != null ? response.getContent().size() : "NULL");
                 return response;
             }
         } catch (Exception e) {
@@ -104,7 +90,6 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
                     pageable.getSort().iterator().next().getDirection().name() : "ASC";
             
             if (useFeignClient) {
-                log.debug("Sử dụng FeignClient để lấy danh sách bác sĩ theo chuyên khoa {}", specialtyId);
                 return userProfileFeignClient.getDoctorsBySpecialty(
                         specialtyId,
                         pageable.getPageNumber(),
@@ -113,7 +98,6 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
                         sortDir
                 );
             } else {
-                log.debug("Sử dụng RestTemplate để lấy danh sách bác sĩ theo chuyên khoa {}", specialtyId);
                 return userProfileServiceClient.getDoctorsBySpecialty(
                         specialtyId,
                         pageable.getPageNumber(),
@@ -123,7 +107,6 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
                 );
             }
         } catch (Exception e) {
-            log.error("Lỗi khi lấy danh sách bác sĩ theo chuyên khoa {}: {}", specialtyId, e.getMessage());
             return PageResponse.<DoctorResponse>builder()
                     .content(java.util.List.of())
                     .totalElements(0L)

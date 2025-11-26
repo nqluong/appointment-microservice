@@ -1,21 +1,27 @@
 package org.project.service;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public interface FileStorageService {
-    /**
-     * @param file File ảnh cần lưu
-     * @param userId ID của người dùng
-     * @return Đường dẫn tương đối của file đã lưu
-     */
-    String saveUserPhoto(MultipartFile file, UUID userId);
+
+    String uploadUserPhoto(MultipartFile file, UUID userId);
+
+    CompletableFuture<String> uploadUserPhotoAsync(MultipartFile file, UUID userId);
 
     /**
      * @param avatarUrl Đường dẫn ảnh cũ cần xóa
      */
     void deleteOldPhoto(String avatarUrl);
+
+    /**
+     * Xóa ảnh cũ bất đồng bộ
+     * @param avatarUrl Đường dẫn ảnh cũ cần xóa
+     */
+    CompletableFuture<Void> deleteOldPhotoAsync(String avatarUrl);
 
     /**
      * @param file File cần kiểm tra

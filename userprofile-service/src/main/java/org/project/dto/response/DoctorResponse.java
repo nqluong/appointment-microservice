@@ -24,6 +24,7 @@ public class DoctorResponse {
     String email;
     String gender;
     String phone;
+    
     String avatarUrl;
 
     String qualification;

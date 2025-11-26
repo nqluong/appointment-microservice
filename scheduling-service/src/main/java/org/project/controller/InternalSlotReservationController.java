@@ -25,9 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 public class InternalSlotReservationController {
     private final SlotStatusService slotStatusService;
 
-    /**
-     * Reserve slot (SYNC call từ Appointment Service)
-     */
     @PostMapping("/reserve")
     public ResponseEntity<SlotReservationResponse> reserveSlot(
             @Valid @RequestBody SlotReservationRequest request) {
@@ -39,9 +36,6 @@ public class InternalSlotReservationController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Release slot (compensation từ Appointment Service)
-     */
     @PostMapping("/release/{slotId}")
     public ResponseEntity<Void> releaseSlot(@PathVariable UUID slotId) {
 

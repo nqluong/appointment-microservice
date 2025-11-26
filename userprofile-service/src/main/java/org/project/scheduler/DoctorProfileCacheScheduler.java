@@ -1,14 +1,17 @@
 package org.project.scheduler;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.project.dto.response.DoctorResponse;
 import org.project.mapper.DoctorMapper;
 import org.project.repository.DoctorProjection;
 import org.project.repository.DoctorRepository;
 import org.project.repository.MedicalProfileRepository;
+import org.project.service.AvatarUrlService;
 import org.project.service.RedisCacheService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -34,6 +37,7 @@ public class DoctorProfileCacheScheduler {
     private final MedicalProfileRepository medicalProfileRepository;
     private final DoctorMapper doctorMapper;
     private final RedisCacheService redisCacheService;
+    private final AvatarUrlService avatarUrlService;
 
     @Value("${cache.doctor.profile.ttl-days:7}")
     private long profileCacheTtl;
@@ -84,17 +88,21 @@ public class DoctorProfileCacheScheduler {
                 Page<DoctorProjection> doctorPage = doctorRepository
                     .findApprovedDoctorsByUserIds(doctorIds, pageable);
 
-                for (DoctorProjection projection : doctorPage.getContent()) {
-                    try {
-                        DoctorResponse doctorResponse = doctorMapper.projectionToResponse(projection);
+                List<DoctorResponse> doctorResponses = doctorPage.getContent().stream()
+                    .map(doctorMapper::projectionToResponse)
+                    .collect(Collectors.toList());
 
-                        String cacheKey = profileCachePrefix + projection.getUserId();
+                enrichAvatarUrlsBatch(doctorResponses);
+
+                for (DoctorResponse doctorResponse : doctorResponses) {
+                    try {
+                        String cacheKey = profileCachePrefix + doctorResponse.getUserId();
 
                         redisCacheService.set(cacheKey, doctorResponse, profileCacheTtl, TimeUnit.DAYS);
-                        redisCacheService.leftPush(availabilityQueueKey, projection.getUserId().toString());
+                        redisCacheService.leftPush(availabilityQueueKey, doctorResponse.getUserId().toString());
 
                     } catch (Exception e) {
-                        log.error("Error caching doctor profile for doctorId: {}", projection.getUserId(), e);
+                        log.error("Error caching doctor profile for doctorId: {}", doctorResponse.getUserId(), e);
                     }
                 }
 
@@ -107,6 +115,42 @@ public class DoctorProfileCacheScheduler {
 
         } catch (Exception ex) {
             log.error("Error in doctor profile caching job: {}", ex.getMessage(), ex);
+        }
+    }
+
+    private void enrichAvatarUrlsBatch(List<DoctorResponse> doctors) {
+        if (doctors == null || doctors.isEmpty()) {
+            return;
+        }
+
+        try {
+            // Lấy danh sách tên file cần generate URL
+            List<String> fileNames = doctors.stream()
+                    .map(DoctorResponse::getAvatarUrl)
+                    .filter(url -> url != null && !url.isEmpty())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (fileNames.isEmpty()) {
+                return;
+            }
+
+            // Gọi batch API một lần duy nhất
+            Map<String, String> urlMap = avatarUrlService.generateBatchPresignedUrls(fileNames);
+
+            // Cập nhật avatarUrl cho từng doctor
+            doctors.forEach(doctor -> {
+                if (doctor.getAvatarUrl() != null && !doctor.getAvatarUrl().isEmpty()) {
+                    String presignedUrl = urlMap.get(doctor.getAvatarUrl());
+                    if (presignedUrl != null) {
+                        doctor.setAvatarUrl(presignedUrl);
+                    }
+                }
+            });
+
+            log.debug("Đã enrich avatar URLs cho {} bác sĩ trong cache job", doctors.size());
+        } catch (Exception e) {
+            log.error("Lỗi khi enrich avatar URLs trong cache job: {}", e.getMessage(), e);
         }
     }
 }

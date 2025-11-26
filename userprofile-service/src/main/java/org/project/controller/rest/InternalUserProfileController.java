@@ -1,4 +1,4 @@
-package org.project.controller;
+package org.project.controller.rest;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

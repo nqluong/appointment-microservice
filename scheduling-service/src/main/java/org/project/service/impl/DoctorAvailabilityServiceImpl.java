@@ -83,8 +83,6 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
 
     @Override
     public PageResponse<DoctorWithSlotsResponse> getDoctorsWithAvailableSlots(DoctorAvailabilityFilter filter) {
-        log.info("Lấy danh sách bác sĩ với filter: {}", filter);
-        long startTime = System.currentTimeMillis();
 
         try {
             Pageable pageable = createPageableFromFilter(filter);
@@ -111,10 +109,6 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
 
             // Phân trang
             List<DoctorWithSlotsResponse> paginatedResults = paginateResults(doctorsWithSlots, pageable);
-
-            long duration = System.currentTimeMillis() - startTime;
-            log.info("Hoàn thành trong {}ms - Tổng: {}, Trả về: {}",
-                    duration, doctorsWithSlots.size(), paginatedResults.size());
 
             return buildPageResponse(paginatedResults, doctorsWithSlots.size(), pageable);
 

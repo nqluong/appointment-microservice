@@ -64,6 +64,7 @@ public enum ErrorCode {
     FILE_NOT_PROVIDED(4006, "Tệp không được cung cấp hoặc trống", HttpStatus.BAD_REQUEST),
     PHOTO_UPLOAD_ERROR(4007, "Đã xảy ra lỗi khi tải ảnh lên", HttpStatus.INTERNAL_SERVER_ERROR),
     DIRECTORY_CREATION_FAILED(4008, "Tạo thư mục tải lên thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
+    UPDATE_FAILED(4009, "Cập nhật tệp thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Lỗi chuyên khoa & lịch làm việc
     SPECIALTY_NAME_EXISTS(5001, "Tên chuyên khoa đã tồn tại", HttpStatus.BAD_REQUEST),
