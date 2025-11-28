@@ -14,26 +14,16 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppointmentCancelledEvent {
+    UUID eventId;
+    UUID sagaId;
+    
     UUID appointmentId;
     UUID slotId;
-    LocalDateTime cancelledAt;
-    String cancelledBy; // USER, DOCTOR, ADMIN
-    LocalDate appointmentDate;
-
     UUID patientUserId;
-    String patientName;
-    String patientEmail;
-    String patientPhone;
-
     UUID doctorUserId;
-    String doctorName;
-    String doctorEmail;
-    String specialtyName;
-
-    LocalTime startTime;
-    LocalTime endTime;
-
+    
     String reason;
-    String transactionId;
-    LocalDateTime timestamp;
+    String cancelledBy;  // USER, DOCTOR, SYSTEM
+    
+    LocalDateTime cancelledAt;
 }

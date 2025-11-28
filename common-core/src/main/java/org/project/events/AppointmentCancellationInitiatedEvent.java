@@ -13,13 +13,17 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppointmentCancellationInitiatedEvent {
+    // Tracking
+    UUID eventId;
+    UUID sagaId;
+    
     UUID appointmentId;
-    UUID userId;
-    UUID doctorId;
+    UUID patientUserId;
+    UUID doctorUserId;
+    UUID slotId;
+    
     String reason;
-    String cancelledBy;
-    LocalDate appointmentDate;
-    String appointmentTime;
+    String cancelledBy;  // USER, DOCTOR, SYSTEM
+    
     LocalDateTime initiatedAt;
-    String message;
 }

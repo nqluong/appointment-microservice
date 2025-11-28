@@ -14,14 +14,16 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppointmentCreatedEvent {
-    String sagaId;
+    // Tracking
+    UUID eventId;
+    UUID sagaId;
+    
     UUID appointmentId;
-    UUID doctorUserId;
     UUID patientUserId;
+    UUID doctorUserId;
     UUID slotId;
+    
     LocalDate appointmentDate;
     LocalTime startTime;
-    LocalTime endTime;
-    String notes;
     LocalDateTime timestamp;
 }

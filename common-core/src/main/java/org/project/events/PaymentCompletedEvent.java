@@ -13,6 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentCompletedEvent {
+    String eventId;
     UUID paymentId;
     UUID appointmentId;
     BigDecimal amount;

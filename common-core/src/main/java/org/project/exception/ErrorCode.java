@@ -196,8 +196,15 @@ public enum ErrorCode {
     APPOINTMENT_COMPLETION_WITH_MEDICAL_RECORD_FAILED(1419, "Không thể hoàn thành cuộc hẹn với hồ sơ bệnh án", HttpStatus.BAD_REQUEST),
     APPOINTMENT_NOT_COMPLETED(1420, "Cuộc hẹn chưa được hoàn thành", HttpStatus.BAD_REQUEST),
 
+    // Lỗi Saga
+    SAGA_NOT_FOUND(1501, "Không tìm thấy trạng thái saga", HttpStatus.NOT_FOUND),
+    SAGA_STATE_UPDATE_FAILED(1502, "Cập nhật trạng thái saga thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
+    SAGA_COMPENSATION_FAILED(1503, "Bù trừ saga thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
+    SAGA_ALREADY_COMPLETED(1504, "Saga đã được hoàn thành", HttpStatus.CONFLICT),
+    SAGA_ALREADY_COMPENSATED(1505, "Saga đã được bù trừ", HttpStatus.CONFLICT),
 
     ;
+
 
     private final int code;
     private final String message;
