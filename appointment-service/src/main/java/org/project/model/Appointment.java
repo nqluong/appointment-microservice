@@ -38,7 +38,7 @@ public class Appointment {
     @Column(name = "specialty_name")
     String specialtyName;
 
-    @Column(name = "patient_user_id", nullable = false)
+    @Column(name = "patient_user_id", nullable = true)
     UUID patientUserId;
 
     @Column(name = "patient_name")

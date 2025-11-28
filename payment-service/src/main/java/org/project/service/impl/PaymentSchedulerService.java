@@ -15,11 +15,11 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PaymentSchedulerService {
 
-    private static final long PENDING_PAYMENT_INTERVAL = 300000;
+    private static final long PENDING_PAYMENT_INTERVAL = 60000;
 
     PaymentQueryService paymentQueryService;
 
-    @Scheduled(fixedRate = PENDING_PAYMENT_INTERVAL) // 10 minutes
+    @Scheduled(fixedRate = PENDING_PAYMENT_INTERVAL) // 1 minutes
     @Async
     public void processPendingPayments() {
         String taskName = "processPendingPayments";

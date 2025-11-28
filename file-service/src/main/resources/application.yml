@@ -21,5 +21,5 @@ minio:
   endpoint: http://localhost:9000
   access-key: nqluong1405
   secret-key: nqluong140504
-  bucket-name: medical-files
+  bucket-name: avatars
   

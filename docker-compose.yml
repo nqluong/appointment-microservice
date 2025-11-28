@@ -20,10 +20,12 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://broker-1:29092,CONTROLLER://broker-1:29093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    volumes:
+      - broker-1-data:/var/lib/kafka/data
     networks:
       - kafka-network
 
@@ -47,12 +49,16 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://broker-2:29092,CONTROLLER://broker-2:29093,PLAINTEXT_HOST://0.0.0.0:9093
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    volumes:
+      - broker-2-data:/var/lib/kafka/data
     networks:
       - kafka-network
+
+
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -69,6 +75,9 @@ services:
       - broker-2
     networks:
       - kafka-network
+volumes:
+  broker-1-data:
+  broker-2-data:
 networks:
   kafka-network:
     driver: bridge

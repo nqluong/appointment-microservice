@@ -37,34 +37,34 @@ public class KafkaTopicConfig {
                 .build();
     }
 
-    @Bean
-    public NewTopic appointmentCreatedTopic() {
-        return TopicBuilder.name(topics.getAppointmentCreated())
-                .partitions(NUM_PARTITIONS)
-                .replicas(REPLICATION_FACTOR)
-                .config("min.insync.replicas", "1")
-                .config("retention.ms", "604800000") // 7 days
-                .build();
-    }
-
-    @Bean
-    public NewTopic appointmentConfirmedTopic() {
-        return TopicBuilder.name(topics.getAppointmentConfirmed())
-                .partitions(NUM_PARTITIONS)
-                .replicas(REPLICATION_FACTOR)
-                .config("min.insync.replicas", "1")
-                .config("retention.ms", "604800000") // 7 days
-                .build();
-    }
-
-    @Bean
-    public NewTopic appointmentCancelledTopic() {
-        return TopicBuilder.name(topics.getAppointmentCancelled())
-                .partitions(NUM_PARTITIONS)
-                .replicas(REPLICATION_FACTOR)
-                .config("min.insync.replicas", "1")
-                .config("retention.ms", "604800000") // 7 days
-                .build();
-    }
+//    @Bean
+//    public NewTopic appointmentCreatedTopic() {
+//        return TopicBuilder.name(topics.getAppointmentCreated())
+//                .partitions(NUM_PARTITIONS)
+//                .replicas(REPLICATION_FACTOR)
+//                .config("min.insync.replicas", "1")
+//                .config("retention.ms", "604800000") // 7 days
+//                .build();
+//    }
+//
+//    @Bean
+//    public NewTopic appointmentConfirmedTopic() {
+//        return TopicBuilder.name(topics.getAppointmentConfirmed())
+//                .partitions(NUM_PARTITIONS)
+//                .replicas(REPLICATION_FACTOR)
+//                .config("min.insync.replicas", "1")
+//                .config("retention.ms", "604800000") // 7 days
+//                .build();
+//    }
+//
+//    @Bean
+//    public NewTopic appointmentCancelledTopic() {
+//        return TopicBuilder.name(topics.getAppointmentCancelled())
+//                .partitions(NUM_PARTITIONS)
+//                .replicas(REPLICATION_FACTOR)
+//                .config("min.insync.replicas", "1")
+//                .config("retention.ms", "604800000") // 7 days
+//                .build();
+//    }
 }
 

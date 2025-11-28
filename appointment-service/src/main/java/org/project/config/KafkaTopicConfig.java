@@ -56,15 +56,15 @@ public class KafkaTopicConfig {
                 .build();
     }
 
-    @Bean
-    public NewTopic slotReservedTopic() {
-        return TopicBuilder.name(topics.getSlotReserved())
-                .partitions(NUM_PARTITIONS)
-                .replicas(REPLICATION_FACTOR)
-                .config("min.insync.replicas", "1")
-                .config("retention.ms", "604800000")
-                .build();
-    }
+//    @Bean
+//    public NewTopic slotReservedTopic() {
+//        return TopicBuilder.name(topics.getSlotReserved())
+//                .partitions(NUM_PARTITIONS)
+//                .replicas(REPLICATION_FACTOR)
+//                .config("min.insync.replicas", "1")
+//                .config("retention.ms", "604800000")
+//                .build();
+//    }
 
     @Bean
     public NewTopic patientValidatedTopic() {
@@ -76,15 +76,15 @@ public class KafkaTopicConfig {
                 .build();
     }
 
-    @Bean
-    public NewTopic doctorValidatedTopic() {
-        return TopicBuilder.name(topics.getDoctorValidated())
-                .partitions(NUM_PARTITIONS)
-                .replicas(REPLICATION_FACTOR)
-                .config("min.insync.replicas", "1")
-                .config("retention.ms", "604800000")
-                .build();
-    }
+//    @Bean
+//    public NewTopic doctorValidatedTopic() {
+//        return TopicBuilder.name(topics.getDoctorValidated())
+//                .partitions(NUM_PARTITIONS)
+//                .replicas(REPLICATION_FACTOR)
+//                .config("min.insync.replicas", "1")
+//                .config("retention.ms", "604800000")
+//                .build();
+//    }
 
     @Bean
     public NewTopic validationFailedTopic() {

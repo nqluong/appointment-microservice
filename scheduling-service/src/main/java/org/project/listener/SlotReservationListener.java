@@ -1,5 +1,6 @@
 package org.project.listener;
 
+import org.project.events.AppointmentCancellationInitiatedEvent;
 import org.project.events.AppointmentCancelledEvent;
 import org.project.repository.DoctorAvailableSlotRepository;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -25,7 +26,7 @@ public class SlotReservationListener {
             concurrency = "3"
     )
     @Transactional
-    public void handleAppointmentCancelled(AppointmentCancelledEvent event) {
+    public void handleAppointmentCancelled(AppointmentCancellationInitiatedEvent event) {
         log.info("Nhận AppointmentCancelledEvent: slotId={}",
                  event.getSlotId());
 

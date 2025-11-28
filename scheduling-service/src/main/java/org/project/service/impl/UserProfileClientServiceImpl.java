@@ -36,7 +36,7 @@ public class UserProfileClientServiceImpl implements UserProfileClientService {
                 return response;
             }
         } catch (Exception e) {
-            log.error("❌ Lỗi khi lấy thông tin bác sĩ {}: {}", doctorId, e.getMessage(), e);
+            log.error("Lỗi khi lấy thông tin bác sĩ {}: {}", doctorId, e.getMessage(), e);
             return null;
         }
     }
