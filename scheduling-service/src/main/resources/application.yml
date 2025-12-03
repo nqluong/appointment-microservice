@@ -9,7 +9,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -102,3 +102,9 @@ app:
     cache-ttl: 3600       # Cache TTL (seconds)
     enable-parallel: true # Bật parallel processing
     enable-batch-cache: true # Bật batch cache operations
+
+logging:
+  level:
+    org.project.process: DEBUG
+    org.project.service.impl.DoctorSlotRedisCacheImpl: DEBUG
+    org.springframework.data.redis: OFF  # Tắt DEBUG log của Redis

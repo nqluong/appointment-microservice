@@ -1,8 +1,11 @@
 package org.project.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -33,8 +36,9 @@ public class OutboxEvent {
     String eventType;
 
     // JSONB payload
+    @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb", nullable = false)
-    String payload;
+    JsonNode payload;
 
     @Column(nullable = false)
     Boolean processed = false;

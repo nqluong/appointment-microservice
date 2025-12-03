@@ -18,6 +18,7 @@ import org.project.mapper.DoctorAvailabilityMapper2;
 import org.project.model.DoctorAvailableSlot;
 import org.project.repository.DoctorAvailableSlotRepository;
 import org.project.service.DoctorAvailabilityService;
+import org.project.service.DoctorSlotRedisCache;
 import org.project.service.RedisCacheService;
 import org.project.service.UserProfileClientService;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService {
 
     private final RedisCacheService redisCacheService;
+    private final DoctorSlotRedisCache doctorSlotRedisCache;
     private final UserProfileClientService userProfileClientService;
     private final DoctorAvailableSlotRepository doctorAvailableSlotRepository;
 
@@ -350,23 +352,18 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
         List<LocalDate> cacheMissDates = new ArrayList<>();
 
         List<LocalDate> dates = getDateRange(startDate, endDate);
-        List<String> cacheKeys = dates.stream()
-                .map(date -> AVAILABILITY_CACHE_PREFIX + doctorId + ":" + date)
-                .collect(Collectors.toList());
 
         try {
-            // Batch get từ cache
-            List<Object> cachedValues = redisCacheService.mget(cacheKeys);
+            for (LocalDate date : dates) {
+                DoctorAvailabilityCacheData cacheData = doctorSlotRedisCache.getDoctorAvailability(doctorId, date);
 
-            for (int i = 0; i < dates.size(); i++) {
-                LocalDate date = dates.get(i);
-                Object cached = cachedValues.get(i);
-
-                if (cached instanceof DoctorAvailabilityCacheData cacheData) {
+                if (cacheData != null) {
+                    // Cache HIT
                     List<AvailableSlotInfo> dailySlots = convertCacheDataToSlotInfoList(cacheData);
                     dailySlots = applySlotFilters(dailySlots, filter);
                     allSlots.addAll(dailySlots);
                 } else {
+                    // Cache MISS
                     cacheMissDates.add(date);
                 }
             }
@@ -379,13 +376,11 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
             cacheMissDates.addAll(dates);
         }
 
-        // Xử lý cache miss
         if (!cacheMissDates.isEmpty()) {
             List<AvailableSlotInfo> dbSlots = getSlotsFromDatabase(doctorId, cacheMissDates);
             dbSlots = applySlotFilters(dbSlots, filter);
             allSlots.addAll(dbSlots);
 
-            // Cache lại các slots vừa lấy từ DB
             cacheSlots(doctorId, dbSlots);
         }
 
@@ -443,20 +438,14 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
             Map<LocalDate, List<AvailableSlotInfo>> slotsByDate = slots.stream()
                     .collect(Collectors.groupingBy(AvailableSlotInfo::getSlotDate));
 
-            // Cache từng ngày
             for (Map.Entry<LocalDate, List<AvailableSlotInfo>> entry : slotsByDate.entrySet()) {
                 LocalDate date = entry.getKey();
                 List<AvailableSlotInfo> dailySlots = entry.getValue();
 
-                String cacheKey = AVAILABILITY_CACHE_PREFIX + doctorId + ":" + date;
+                // Convert sang TimeSlot
+                List<TimeSlot> timeSlots = convertAvailableSlotInfoToTimeSlots(dailySlots);
 
-                DoctorAvailabilityCacheData cacheData = DoctorAvailabilityCacheData.builder()
-                        .doctorId(doctorId)
-                        .date(date.toString())
-                        .slots(convertAvailableSlotInfoToTimeSlots(dailySlots))
-                        .build();
-
-                redisCacheService.set(cacheKey, cacheData, cacheTtlSeconds, TimeUnit.SECONDS);
+                doctorSlotRedisCache.cacheDoctorAvailability(doctorId, date, timeSlots);
             }
 
             log.debug("Đã cache {} ngày cho bác sĩ {}", slotsByDate.size(), doctorId);

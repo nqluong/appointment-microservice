@@ -1,5 +1,6 @@
 package org.project.dto.cache;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DoctorAvailabilityCacheData {
     private UUID doctorId;
-    private String date; // LocalDate as String (yyyy-MM-dd)
+    private LocalDate date; // LocalDate as String (yyyy-MM-dd)
     private List<TimeSlot> slots;
     private int totalSlots;
     private long cachedAt; // Timestamp when cached

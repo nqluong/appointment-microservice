@@ -1,5 +1,6 @@
 package org.project.scheduler;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,25 +15,28 @@ import org.project.model.OutboxEvent;
 import org.project.repository.OutboxEventRepository;
 import org.project.service.OutboxService;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OutboxEventPublisher {
-    private final OutboxEventRepository outboxEventRepository;
-    private final OutboxService outboxService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final AppointmentKafkaTopics topics;
-    private final ObjectMapper objectMapper;
+    OutboxEventRepository outboxEventRepository;
+    OutboxService outboxService;
+    KafkaTemplate<String, Object> kafkaTemplate;
+    AppointmentKafkaTopics topics;
+    ObjectMapper objectMapper;
 
-    private static final int MAX_RETRY_COUNT = 5;
-    private static final int BATCH_SIZE = 100;
+    static final int MAX_RETRY_COUNT = 5;
+    static final int BATCH_SIZE = 100;
 
     @Scheduled(fixedDelay = 5000, initialDelay = 10000)
     @Transactional
@@ -44,22 +48,22 @@ public class OutboxEventPublisher {
             return;
         }
 
-        log.info("Publishing {} pending outbox events", pendingEvents.size());
+        log.info("Đang phát {} sự kiện outbox đang chờ", pendingEvents.size());
 
         for (OutboxEvent event : pendingEvents) {
             if (event.getRetryCount() >= MAX_RETRY_COUNT) {
-                log.error("Event exceeded max retries: eventId={}, retries={}",
+                log.error("Sự kiện vượt quá số lần thử tối đa: eventId={}, số lần thử={}",
                         event.getEventId(), event.getRetryCount());
                 continue;
             }
 
             try {
                 publishEvent(event);
-                outboxService.markAsProcessed(event.getId().toString());
+                outboxService.markAsProcessed(event.getEventId());
 
             } catch (Exception e) {
-                log.error("Failed to publish event: eventId={}", event.getEventId(), e);
-                outboxService.markAsFailed(event.getId().toString(), e.getMessage());
+                log.error("Lỗi khi phát sự kiện: eventId={}", event.getEventId(), e);
+                outboxService.markAsFailed(event.getEventId(), e.getMessage());
             }
         }
     }
@@ -68,24 +72,22 @@ public class OutboxEventPublisher {
         String topic = getTopicForEventType(outboxEvent.getEventType());
         String key = outboxEvent.getAggregateId().toString();
 
+        // Chuyển đổi JsonNode thành Object event
         Object eventPayload = deserializePayload(
                 outboxEvent.getPayload(),
                 outboxEvent.getEventType()
         );
 
-        kafkaTemplate.send(topic, key, eventPayload)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Kafka send failed: eventId={}", outboxEvent.getEventId(), ex);
-                        throw new RuntimeException("Kafka send failed", ex);
-                    } else {
-                        log.info("Published event: eventId={}, type={}, partition={}, offset={}",
-                                outboxEvent.getEventId(),
-                                outboxEvent.getEventType(),
-                                result.getRecordMetadata().partition(),
-                                result.getRecordMetadata().offset());
-                    }
-                });
+        CompletableFuture<SendResult<String, Object>> future =
+                kafkaTemplate.send(topic, key, eventPayload);
+
+        SendResult<String, Object> result = future.get();
+        
+        log.info("Đã phát sự kiện: eventId={}, loại={}, partition={}, offset={}",
+                outboxEvent.getEventId(),
+                outboxEvent.getEventType(),
+                result.getRecordMetadata().partition(),
+                result.getRecordMetadata().offset());
     }
 
     private String getTopicForEventType(String eventType) {
@@ -98,9 +100,9 @@ public class OutboxEventPublisher {
         };
     }
 
-    private Object deserializePayload(String payload, String eventType) throws Exception {
+    private Object deserializePayload(JsonNode payload, String eventType) throws Exception {
         Class<?> eventClass = getEventClass(eventType);
-        return objectMapper.readValue(payload, eventClass);
+        return objectMapper.treeToValue(payload, eventClass);
     }
 
     private Class<?> getEventClass(String eventType) {
@@ -114,13 +116,13 @@ public class OutboxEventPublisher {
     }
 
     /**
-     * Cleanup old processed events - run daily at 2 AM
+     * Dọn dẹp các sự kiện đã xử lý cũ - chạy hàng ngày lúc 2 giờ sáng
      */
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void cleanupOldEvents() {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
         int deleted = outboxEventRepository.deleteOldProcessedEvents(cutoffDate);
-        log.info("Cleaned up {} old outbox events", deleted);
+        log.info("Đã dọn dẹp {} sự kiện outbox cũ", deleted);
     }
 }

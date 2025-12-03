@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.project.dto.ApiResponse;
 import org.project.dto.request.CreatePaymentRequest;
 import org.project.dto.request.PaymentCallbackRequest;
 import org.project.dto.request.PaymentRefundRequest;
@@ -105,7 +106,7 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> vnpayCallback(
             @RequestParam Map<String, String> params,
             HttpServletRequest request) {
-        log.info("Raw callback params: {}", params);
+        log.info("Thông tin ipn: {}", params);
         PaymentCallbackRequest callbackRequest = PaymentCallbackRequest.builder()
                 .parameters(params)
                 .build();
@@ -175,11 +176,32 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.OK).body("Processing completed");
     }
 
-//    @PostMapping("/refund")
-//    public ResponseEntity<PaymentRefundResponse> refundPayment(@RequestBody PaymentRefundRequest request) {
-//        PaymentRefundResponse response = paymentService.refundPayment(request);
-//        return ResponseEntity.ok(response);
-//    }
+    @PostMapping("/confirm-payment")
+    public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
+            @RequestParam(required = false) UUID paymentId,
+            @RequestParam(required = false) String transactionId) {
+
+        log.info("Xác nhận thanh toán - paymentId: {}, transactionId: {}", paymentId, transactionId);
+
+        PaymentResponse response;
+        
+        if (paymentId != null) {
+            response = paymentService.confirmPaymentProcessing(paymentId);
+        } else if (transactionId != null) {
+            response = paymentService.confirmPaymentProcessingByTransactionId(transactionId);
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.<PaymentResponse>builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
+                    .message("Phải cung cấp paymentId hoặc transactionId")
+                    .build());
+        }
+
+        return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
+                .code(HttpStatus.OK.value())
+                .message("Đã xác nhận thanh toán thành công")
+                .data(response)
+                .build());
+    }
 
     private String getClientIp(HttpServletRequest request) {
         String clientIp = null;

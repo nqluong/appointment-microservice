@@ -77,11 +77,9 @@ public final class DoctorAvailabilityMapper2 {
             return Collections.emptyList();
         }
 
-        LocalDate date;
-        try {
-            date = LocalDate.parse(cacheData.getDate());
-        } catch (DateTimeParseException e) {
-            log.error("Lỗi parse ngày từ cache: {}", cacheData.getDate());
+        LocalDate date = cacheData.getDate();
+        if (date == null) {
+            log.error("Date is null in cache data");
             return Collections.emptyList();
         }
 
@@ -100,8 +98,8 @@ public final class DoctorAvailabilityMapper2 {
             return AvailableSlotInfo.builder()
                     .slotId(String.valueOf(timeSlot.getSlotId()))
                     .slotDate(date)
-                    .startTime(LocalTime.parse(timeSlot.getStartTime()))
-                    .endTime(LocalTime.parse(timeSlot.getEndTime()))
+                    .startTime(timeSlot.getStartTime())
+                    .endTime(timeSlot.getEndTime())
                     .isAvailable(timeSlot.isAvailable())
                     .build();
         } catch (DateTimeParseException e) {
@@ -119,8 +117,8 @@ public final class DoctorAvailabilityMapper2 {
         try {
             return TimeSlot.builder()
                     .slotId(UUID.fromString(slotInfo.getSlotId()))
-                    .startTime(slotInfo.getStartTime().toString())
-                    .endTime(slotInfo.getEndTime().toString())
+                    .startTime(slotInfo.getStartTime())
+                    .endTime(slotInfo.getEndTime())
                     .isAvailable(Boolean.TRUE.equals(slotInfo.getIsAvailable()))
                     .build();
         } catch (Exception e) {
@@ -155,7 +153,7 @@ public final class DoctorAvailabilityMapper2 {
 
         return DoctorAvailabilityCacheData.builder()
                 .doctorId(doctorId)
-                .date(date.toString())
+                .date(date)
                 .slots(timeSlots)
                 .build();
     }

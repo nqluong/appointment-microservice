@@ -6,6 +6,7 @@ import java.util.concurrent.Executor;
 
 import org.project.process.DoctorAvailabilityCacheProcess;
 import org.project.repository.DoctorAvailableSlotRepository;
+import org.project.service.DoctorSlotRedisCache;
 import org.project.service.RedisCacheService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +43,7 @@ public class AsyncConfig {
      */
     @Bean(name = "cacheProcessExecutor")
     public Executor cacheProcessExecutor(RedisCacheService redisCacheService,
+                                          DoctorSlotRedisCache doctorSlotRedisCache,
                                           DoctorAvailableSlotRepository slotRepository) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(3);
@@ -56,7 +58,7 @@ public class AsyncConfig {
         int numWorkers = 3;
         for (int i = 0; i < numWorkers; i++) {
             DoctorAvailabilityCacheProcess process = new DoctorAvailabilityCacheProcess(
-                redisCacheService, slotRepository);
+                redisCacheService, doctorSlotRedisCache, slotRepository);
             cacheProcesses.add(process);
             executor.execute(process);
             log.info("Started cache worker thread {}/{}", i + 1, numWorkers);

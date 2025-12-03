@@ -53,4 +53,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             "AND p.createdAt < :cutoffDate")
     long countOldPendingPayments(@Param("status") PaymentStatus status,
                                  @Param("cutoffDate") LocalDateTime cutoffDate);
+
+    // Tìm các payment theo status và createdAt trước một thời điểm
+    List<Payment> findByPaymentStatusAndCreatedAtBefore(PaymentStatus status, LocalDateTime createdBefore);
 }

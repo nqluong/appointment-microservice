@@ -1,5 +1,6 @@
 package org.project.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AccessLevel;
@@ -37,19 +38,20 @@ public class OutboxServiceImpl implements OutboxService {
                           String eventType, Object eventPayload) {
 
         if (outboxEventRepository.existsByEventId(eventId)) {
-            log.debug("Event already in outbox, skipping: eventId={}", eventId);
+            log.debug("Sự kiện đã tồn tại trong outbox, bỏ qua: eventId={}", eventId);
             return;
         }
 
         try {
-            String payload = objectMapper.writeValueAsString(eventPayload);
+            // Chuyển đổi Object thành JsonNode để lưu vào JSONB
+            JsonNode jsonNode = objectMapper.valueToTree(eventPayload);
 
             OutboxEvent outboxEvent = OutboxEvent.builder()
                     .eventId(eventId)
                     .aggregateType(aggregateType)
                     .aggregateId(aggregateId)
                     .eventType(eventType)
-                    .payload(payload)
+                    .payload(jsonNode)
                     .processed(false)
                     .createdAt(LocalDateTime.now())
                     .retryCount(0)
@@ -57,13 +59,13 @@ public class OutboxServiceImpl implements OutboxService {
 
             outboxEventRepository.save(outboxEvent);
 
-            log.info("Saved to outbox: eventId={}, type={}, aggregate={}",
+            log.info("Đã lưu vào outbox: eventId={}, loại={}, aggregate={}",
                     eventId, eventType, aggregateId);
 
         } catch (Exception e) {
-            log.error("Failed to save to outbox: eventId={}, type={}",
+            log.error("Lỗi khi lưu vào outbox: eventId={}, loại={}",
                     eventId, eventType, e);
-            throw new RuntimeException("Failed to save event to outbox", e);
+            throw new RuntimeException("Không thể lưu sự kiện vào outbox", e);
         }
     }
 
@@ -75,7 +77,7 @@ public class OutboxServiceImpl implements OutboxService {
                     event.setProcessed(true);
                     event.setProcessedAt(LocalDateTime.now());
                     outboxEventRepository.save(event);
-                    log.debug("Marked as processed: outboxId={}, eventId={}",
+                    log.debug("Đã đánh dấu đã xử lý: outboxId={}, eventId={}",
                             outboxEventId, event.getEventId());
                 });
     }
@@ -88,7 +90,7 @@ public class OutboxServiceImpl implements OutboxService {
                     event.setRetryCount(event.getRetryCount() + 1);
                     event.setErrorMessage(errorMessage);
                     outboxEventRepository.save(event);
-                    log.warn("Marked as failed: outboxId={}, eventId={}, retries={}",
+                    log.warn("Đã đánh dấu thất bại: outboxId={}, eventId={}, số lần thử={}",
                             outboxEventId, event.getEventId(), event.getRetryCount());
                 });
     }
@@ -96,11 +98,6 @@ public class OutboxServiceImpl implements OutboxService {
     @Override
     public OutboxEvent getEvent(String outboxEventId) {
         return outboxEventRepository.findByEventId(outboxEventId)
-                .orElseThrow(() -> new RuntimeException("Outbox event not found: " + outboxEventId));
-    }
-
-    private String truncate(String str, int maxLength) {
-        if (str == null) return null;
-        return str.length() > maxLength ? str.substring(0, maxLength) : str;
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện outbox: " + outboxEventId));
     }
 }

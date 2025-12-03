@@ -11,5 +11,18 @@ import lombok.Data;
 public class PaymentKafkaTopics {
     private String paymentCompleted;
     private String paymentFailed;
+    private String paymentRefundProcessed;
+
+    public String getPaymentCompleted() {
+        return paymentCompleted != null ? paymentCompleted : "payment.completed";
+    }
+
+    public String getPaymentFailed() {
+        return paymentFailed != null ? paymentFailed : "payment.failed";
+    }
+
+    public String getPaymentRefundProcessed() {
+        return paymentRefundProcessed != null ? paymentRefundProcessed : "payment.refund.processed";
+    }
 }
 

@@ -16,6 +16,7 @@ import org.project.exception.ErrorCode;
 import org.project.model.DoctorAvailableSlot;
 import org.project.repository.DoctorAvailableSlotRepository;
 import org.project.repository.SlotStatusRepository;
+import org.project.service.DoctorSlotRedisCache;
 import org.project.service.SlotStatusService;
 import org.project.service.SlotStatusValidationService;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -36,6 +37,7 @@ public class SlotStatusServiceImpl implements SlotStatusService {
     SlotStatusRepository slotStatusRepository;
     DoctorAvailableSlotRepository slotRepository;
     SlotStatusValidationService slotStatusValidationService;
+    DoctorSlotRedisCache doctorSlotRedisCache;
 
     @Override
     public SlotStatusUpdateResponse markSlotAvailable(UUID slotId) {
@@ -89,9 +91,11 @@ public class SlotStatusServiceImpl implements SlotStatusService {
 
             // Reserve slot
             slot.setAvailable(false);
-            slotRepository.save(slot); // Optimistic lock sẽ throw exception nếu conflict
+            slotRepository.save(slot);
 
             log.info("Slot {} reserved successfully for patient {}", slot.getId(), request.getPatientId());
+
+            updateCacheAfterStatusChange(slot, false);
 
             return SlotReservationResponse.builder()
                     .success(true)
@@ -120,6 +124,8 @@ public class SlotStatusServiceImpl implements SlotStatusService {
                 slot -> {
                     slot.setAvailable(true);
                     slotRepository.save(slot);
+
+                    updateCacheAfterStatusChange(slot, true);
                     log.info("Slot {} released successfully", slotId);
                 },
                 () -> log.warn("Slot {} not found for release", slotId)
@@ -196,6 +202,7 @@ public class SlotStatusServiceImpl implements SlotStatusService {
         log.debug("Slot {} thay đổi trạng thái từ {} sang {}", slot.getId(), oldStatus, isAvailable);
 
         DoctorAvailableSlot updatedSlot = slotStatusRepository.save(slot);
+        updateCacheAfterStatusChange(updatedSlot, isAvailable);
         return buildSlotStatusUpdateResponse(updatedSlot, reason);
     }
 
@@ -209,6 +216,27 @@ public class SlotStatusServiceImpl implements SlotStatusService {
         LocalDateTime slotDateTime = LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
         if (slotDateTime.isBefore(LocalDateTime.now())) {
             throw new CustomException(ErrorCode.SLOT_IN_PAST);
+        }
+    }
+
+    private void updateCacheAfterStatusChange(DoctorAvailableSlot slot, boolean isAvailable) {
+        try {
+            doctorSlotRedisCache.updateSlotAvailability(
+                    slot.getDoctorId(),
+                    slot.getSlotDate(),
+                    slot.getId(),
+                    isAvailable
+            );
+            log.debug("Cache updated successfully for slot {} with status {}", slot.getId(), isAvailable);
+        } catch (Exception e) {
+            log.error("Failed to update cache for slot {}: {}", slot.getId(), e.getMessage());
+            try {
+                doctorSlotRedisCache.evictDoctorAvailabilityCache(slot.getDoctorId(), slot.getSlotDate());
+                log.info("Cache evicted for doctor {} on {} due to update failure",
+                        slot.getDoctorId(), slot.getSlotDate());
+            } catch (Exception ex) {
+                log.error("Failed to evict cache as fallback: {}", ex.getMessage());
+            }
         }
     }
 }

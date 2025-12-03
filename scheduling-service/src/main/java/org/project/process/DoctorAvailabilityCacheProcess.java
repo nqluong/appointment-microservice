@@ -5,6 +5,7 @@ import org.project.dto.cache.DoctorAvailabilityCacheData;
 import org.project.dto.cache.TimeSlot;
 import org.project.model.DoctorAvailableSlot;
 import org.project.repository.DoctorAvailableSlotRepository;
+import org.project.service.DoctorSlotRedisCache;
 import org.project.service.RedisCacheService;
 
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
 
     private final RedisCacheService redisCacheService;
     private final DoctorAvailableSlotRepository slotRepository;
+    private final DoctorSlotRedisCache doctorSlotRedisCache;
     
     // Redis queue key where userprofile-service pushes doctor IDs
     private static final String QUEUE_KEY = "doctor_availability_cache_queue";
@@ -33,8 +35,10 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
     private volatile boolean running = true;
 
     public DoctorAvailabilityCacheProcess(RedisCacheService redisCacheService,
+                                          DoctorSlotRedisCache doctorSlotRedisCache,
                                           DoctorAvailableSlotRepository slotRepository) {
         this.redisCacheService = redisCacheService;
+        this.doctorSlotRedisCache = doctorSlotRedisCache;
         this.slotRepository = slotRepository;
     }
 
@@ -82,68 +86,73 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
             LocalDate startDate = LocalDate.now();
             LocalDate endDate = startDate.plusDays(DAYS_TO_CACHE);
 
+            log.debug("🔍 Đang tìm slots cho doctor {} từ {} đến {}", doctorId, startDate, endDate);
+
             List<DoctorAvailableSlot> slots = slotRepository
                     .findSlotsByDoctorAndDateRange(doctorId, startDate, endDate);
 
             if (slots.isEmpty()) {
-                log.debug("No availability slots found for doctorId: {}", doctorId);
+                log.debug("⚠️ Không tìm thấy slot nào cho doctorId: {} trong khoảng {} - {}", 
+                        doctorId, startDate, endDate);
                 return;
             }
 
-            log.debug("Found {} slots for doctorId: {}", slots.size(), doctorId);
+            log.debug("📋 Tìm thấy {} slots cho doctorId: {}", slots.size(), doctorId);
 
             // Group slots by date for efficient caching
             Map<LocalDate, List<DoctorAvailableSlot>> slotsByDate = slots.stream()
                     .collect(Collectors.groupingBy(DoctorAvailableSlot::getSlotDate));
 
-            // Cache each day's slots separately
+            log.debug("📅 Slots được phân bổ trên {} ngày khác nhau", slotsByDate.size());
+
+            // Cache chỉ những ngày có slots
             int cachedDays = 0;
-            LocalDate currentDate = startDate;
+            for (Map.Entry<LocalDate, List<DoctorAvailableSlot>> entry : slotsByDate.entrySet()) {
+                LocalDate slotDate = entry.getKey();
+                List<DoctorAvailableSlot> dailySlots = entry.getValue();
 
-            while (!currentDate.isAfter(endDate)) {
-                List<DoctorAvailableSlot> dailySlots = slotsByDate.getOrDefault(
-                        currentDate, Collections.emptyList());
-
-                cacheDailySlots(doctorId, currentDate, dailySlots);
-                
                 if (!dailySlots.isEmpty()) {
+                    log.trace("  → Ngày {}: {} slots", slotDate, dailySlots.size());
+                    cacheDailySlots(doctorId, slotDate, dailySlots);
                     cachedDays++;
                 }
-
-                currentDate = currentDate.plusDays(1);
             }
 
-            log.debug("Cached availability for {} days for doctorId: {}", cachedDays, doctorId);
+            log.info("✅ Đã cache {} ngày có slot cho doctorId: {} (tổng {} slots)", 
+                    cachedDays, doctorId, slots.size());
 
         } catch (IllegalArgumentException e) {
-            log.error("Invalid doctor ID format: {}", doctorIdStr);
+            log.error("❌ Định dạng doctor ID không hợp lệ: {}", doctorIdStr);
         } catch (Exception e) {
-            log.error("Error processing doctor availability for doctorId: {}", doctorIdStr, e);
+            log.error("❌ Lỗi khi xử lý availability cho doctorId: {}", doctorIdStr, e);
         }
     }
 
 
     private void cacheDailySlots(UUID doctorId, LocalDate date, List<DoctorAvailableSlot> dailySlots) {
         try {
+            log.debug("📝 cacheDailySlots được gọi: doctorId={}, date={}, số slots={}", 
+                    doctorId, date, dailySlots.size());
+
+            // Chỉ cache nếu có slot
+            if (dailySlots.isEmpty()) {
+                log.trace("Bỏ qua cache cho doctorId: {} vào ngày: {} (không có slot)", doctorId, date);
+                return;
+            }
+
             List<TimeSlot> slots = dailySlots.stream()
                     .map(this::convertToTimeSlot)
                     .collect(Collectors.toList());
 
-            DoctorAvailabilityCacheData cacheData = DoctorAvailabilityCacheData.builder()
-                    .doctorId(doctorId)
-                    .date(date.toString())
-                    .slots(slots)
-                    .totalSlots(slots.size())
-                    .build();
-
-            // Cache key format: doctor:availability:{doctorId}:{date}
-            String cacheKey = CACHE_PREFIX + doctorId + ":" + date;
-            redisCacheService.set(cacheKey, cacheData, CACHE_TTL_DAYS, TimeUnit.DAYS);
+            log.debug("🔄 Đang gọi doctorSlotRedisCache.cacheDoctorAvailability với {} slots", slots.size());
             
-            log.trace("Cached {} slots for doctorId: {} on date: {}", slots.size(), doctorId, date);
+            doctorSlotRedisCache.cacheDoctorAvailability(doctorId, date, slots);
+
+            log.debug("✅ Hoàn thành cache {} slots cho doctorId: {} vào ngày: {}", slots.size(), doctorId, date);
 
         } catch (Exception e) {
-            log.error("Error caching daily slots for doctorId: {} on date: {}", doctorId, date, e);
+            log.error("❌ Lỗi khi cache slots hàng ngày cho doctorId: {} vào ngày: {}", doctorId, date, e);
+            e.printStackTrace(); // Print full stack trace
         }
     }
 
@@ -151,8 +160,8 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
     private TimeSlot convertToTimeSlot(DoctorAvailableSlot slot) {
         return TimeSlot.builder()
                 .slotId(slot.getId())
-                .startTime(slot.getStartTime().toString())
-                .endTime(slot.getEndTime().toString())
+                .startTime(slot.getStartTime())
+                .endTime(slot.getEndTime())
                 .isAvailable(slot.isAvailable())
                 .build();
     }

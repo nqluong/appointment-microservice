@@ -11,7 +11,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -52,6 +52,7 @@ vnpay:
   query-url: "${QUERY_URL}"
 
 payment:
+  pending-timeout-minutes: 15    # Timeout cho payment PENDING (phút)
   query:
     safety-days-before: 7        # Chỉ query payment tạo trong 7 ngày gần đây
     min-minutes-before-query: 5  # Đợi ít nhất 5 phút trước khi query

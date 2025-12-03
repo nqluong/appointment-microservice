@@ -32,6 +32,7 @@ import org.project.gateway.dto.RefundRequest;
 import org.project.gateway.vnpay.config.VNPayConfig;
 import org.project.mapper.PaymentMapper;
 import org.project.model.Payment;
+import org.project.publisher.PaymentEventPublisher;
 import org.project.repository.PaymentRepository;
 import org.project.service.OrderInfoBuilder;
 import org.project.service.PaymentAmountCalculator;
@@ -64,9 +65,6 @@ public class PaymentServiceImpl implements PaymentService {
     PaymentGatewayFactory paymentGatewayFactory;
     PaymentMapper paymentMapper;
     VNPayConfig vnPayConfig;
-    KafkaTemplate<String, Object> kafkaTemplate;
-    PaymentKafkaTopics topics;
-    AppointmentServiceClient appointmentServiceClient;
 
     PaymentAmountCalculator paymentAmountCalculator;
     PaymentStatusHandler paymentStatusHandler;
@@ -122,50 +120,16 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("Thanh toán thành công, ID thanh toán: {}", updatedPayment.getId());
             
             // Publish PaymentCompletedEvent
-            publishPaymentCompletedEvent(updatedPayment);
+            handlePaymentSuccess(payment.getId());
         } else if (PaymentStatus.FAILED.equals(updatedPayment.getPaymentStatus())) {
             log.info("Thanh toán thất bại (xác nhận bởi VNPay), ID thanh toán: {}", updatedPayment.getId());
 
-            publishPaymentFailedEvent(updatedPayment, "Xác nhận thanh toán thất bại", true);
-        }
+            handlePaymentFailure(payment.getId());        }
 
         log.info("Đã xử lý phản hồi thanh toán cho ID: {}, Trạng thái: {}",
                 payment.getId(), payment.getPaymentStatus());
 
         return paymentMapper.toResponse(updatedPayment);
-    }
-
-    private void publishPaymentCompletedEvent(Payment payment) {
-        PaymentCompletedEvent event = PaymentCompletedEvent.builder()
-                .paymentId(payment.getId())
-                .appointmentId(payment.getAppointmentId())
-                .amount(payment.getAmount())
-                .paymentType(payment.getPaymentType().name())
-                .paymentMethod(payment.getPaymentMethod().name())
-                .transactionId(payment.getTransactionId())
-                .gatewayTransactionId(payment.getGatewayTransactionId())
-                .paymentDate(payment.getPaymentDate())
-                .timestamp(LocalDateTime.now())
-                .build();
-                
-        kafkaTemplate.send(topics.getPaymentCompleted(), payment.getAppointmentId().toString(), event);
-        log.info("Đã gửi PaymentCompletedEvent cho appointment: {}", payment.getAppointmentId());
-    }
-
-    private void publishPaymentFailedEvent(Payment payment, String reason, boolean confirmedFailure) {
-        PaymentFailedEvent event = PaymentFailedEvent.builder()
-                .paymentId(payment.getId())
-                .appointmentId(payment.getAppointmentId())
-                .transactionId(payment.getTransactionId())
-                .reason(reason)
-                .failedService("payment-service")
-                .timestamp(LocalDateTime.now())
-                .confirmedFailure(confirmedFailure)
-                .build();
-                
-        kafkaTemplate.send(topics.getPaymentFailed(), payment.getAppointmentId().toString(), event);
-        log.info("Đã gửi PaymentFailedEvent cho appointment: {}, confirmedFailure: {}", 
-                payment.getAppointmentId(), confirmedFailure);
     }
 
     // Xử lý hoàn tiền khi hủy
@@ -235,17 +199,41 @@ public class PaymentServiceImpl implements PaymentService {
         paymentQueryService.processProcessingPayments();
     }
 
-     // Xác thực appointment có thể thanh toán
-//    private Appointment findAndValidateAppointment(UUID appointmentId) {
-//        Appointment appointment = appointmentRepository.findById(appointmentId)
-//                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
-//
-//        if (appointment.getStatus() != Status.PENDING) {
-//            throw new CustomException(ErrorCode.APPOINTMENT_NOT_PAYABLE);
-//        }
-//
-//        return appointment;
-//    }
+    @Override
+    @Transactional
+    public PaymentResponse confirmPaymentProcessing(UUID paymentId) {
+        log.info("Xác nhận thanh toán đang xử lý cho paymentId: {}", paymentId);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // Chỉ cho phép chuyển từ PENDING sang PROCESSING
+        if (!PaymentStatus.PENDING.equals(payment.getPaymentStatus())) {
+            log.warn("Payment {} không ở trạng thái PENDING, trạng thái hiện tại: {}", 
+                    paymentId, payment.getPaymentStatus());
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION);
+        }
+
+        // Cập nhật trạng thái
+        payment.setPaymentStatus(PaymentStatus.PROCESSING);
+        payment.setUpdatedAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        log.info("Đã cập nhật payment {} từ PENDING sang PROCESSING", paymentId);
+
+        return paymentMapper.toResponse(payment);
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse confirmPaymentProcessingByTransactionId(String transactionId) {
+        log.info("Xác nhận thanh toán đang xử lý cho transactionId: {}", transactionId);
+
+        Payment payment = paymentRepository.findByTransactionId(transactionId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return confirmPaymentProcessing(payment.getId());
+    }
 
     // Kiểm tra payment nào đã tồn tại với cùng cuộc hẹn và loại thanh toán
     private void validateNoExistingPayment(UUID appointmentId, PaymentType paymentType) {
@@ -380,37 +368,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
-//    private void handleAppointmentAndSlotAfterRefund(Payment payment) {
-//        try {
-//            Appointment appointment = payment.getAppointment();
-//
-//            // Cập nhật trạng thái appointment thành CANCELLED
-//            if (appointment.getStatus() != Status.CANCELLED) {
-//                appointment.setStatus(Status.CANCELLED);
-//                appointmentRepository.save(appointment);
-//                log.info("Đã cập nhật trạng thái lịch hẹn thành ĐÃ HỦY cho lịch hẹn có ID: {}",
-//                        appointment.getId());
-//            }
-//
-//            // Giải phóng slot để người khác có thể đặt
-//            if (appointment.getSlot() != null) {
-//                try {
-//                    slotStatusService.releaseSlot(appointment.getSlot().getId());
-//                    log.info("Đã giải phóng thành công khung giờ ID: {} sau khi hoàn tiền cho lịch hẹn ID: {}",
-//                            appointment.getSlot().getId(), appointment.getId());
-//                } catch (Exception e) {
-//                    log.error("Không thể giải phóng khung giờ ID: {} sau khi hoàn tiền cho lịch hẹn ID: {}. Lỗi: {}",
-//                            appointment.getSlot().getId(), appointment.getId(), e.getMessage());
-//                }
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("Lỗi xử lý lịch hẹn và khung giờ sau khi hoàn tiền cho thanh toán ID: {}. Lỗi: {}",
-//                    payment.getId(), e.getMessage());
-//        }
-//    }
-
-
     private PaymentRefundResult processRefundThroughGateway(Payment payment,
                                                             BigDecimal refundAmount, String refundTxnId, PaymentRefundRequest request) {
 
@@ -434,7 +391,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private void updatePaymentWithUrl(Payment payment, String paymentUrl) {
         payment.setPaymentUrl(paymentUrl);
-        payment.setPaymentStatus(PaymentStatus.PROCESSING);
+        payment.setPaymentStatus(PaymentStatus.PENDING);
         paymentRepository.save(payment);
     }
 
@@ -470,7 +427,6 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             payment.setGatewayResponse(verificationResult.getMessage());
             paymentRepository.save(payment);
-            handlePaymentFailure(payment.getId());
             throw new CustomException(ErrorCode.VNPAY_SIGNATURE_VERIFICATION_FAILED);
         }
 
@@ -480,7 +436,6 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (verificationResult.getStatus() == PaymentStatus.COMPLETED) {
             payment.setPaymentDate(LocalDateTime.now());
-            handlePaymentSuccess(payment.getId());
         }
     }
 

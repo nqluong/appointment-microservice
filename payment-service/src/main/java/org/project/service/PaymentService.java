@@ -33,4 +33,8 @@ public interface PaymentService {
 
     PaymentRefundResponse refundPayment(PaymentRefundRequest request);
 
+    PaymentResponse confirmPaymentProcessing(UUID paymentId);
+
+    PaymentResponse confirmPaymentProcessingByTransactionId(String transactionId);
+
 }

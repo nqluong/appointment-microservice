@@ -21,6 +21,7 @@ public class AppointmentCancellationInitiatedEvent {
     UUID patientUserId;
     UUID doctorUserId;
     UUID slotId;
+    LocalDate appointmentDate;
     
     String reason;
     String cancelledBy;  // USER, DOCTOR, SYSTEM

@@ -1,6 +1,8 @@
 package org.project.service.impl;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.project.client.AuthServiceClient;
 import org.project.client.SchedulingServiceClient;
@@ -28,6 +30,7 @@ import java.util.concurrent.Executor;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AppointmentValidatorImpl implements AppointmentValidator {
     AppointmentRepository appointmentRepository;
     AuthServiceClient authServiceClient;

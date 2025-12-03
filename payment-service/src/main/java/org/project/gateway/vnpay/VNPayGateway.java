@@ -98,7 +98,7 @@ public class VNPayGateway implements PaymentGateway {
                     entity,
                     String.class
             );
-
+            log.info("Response from VNPay for transaction {}: {}", transactionId, response.getBody());
             return parseQueryResponse(response.getBody(), transactionId);
 
         } catch (Exception e) {
@@ -252,6 +252,7 @@ public class VNPayGateway implements PaymentGateway {
             }
 
             PaymentStatus status = determinePaymentStatus(transactionStatus);
+            log.info("VNPay query response for transaction: {}, status: {}",transactionId, status);
             BigDecimal amount = amountStr != null ?
                     new BigDecimal(amountStr).divide(BigDecimal.valueOf(100)) : null;
 

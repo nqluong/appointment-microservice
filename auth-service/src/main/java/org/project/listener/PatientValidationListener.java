@@ -79,7 +79,7 @@ public class PatientValidationListener {
 
     private void publishValidationFailed(AppointmentCreatedEvent event, String reason) {
         ValidationFailedEvent failedEvent = ValidationFailedEvent.builder()
-                .sagaId(event.getSagaId())
+                .sagaId(event.getSagaId().toString())
                 .appointmentId(event.getAppointmentId())
                 .reason(reason)
                 .failedService("auth-service")

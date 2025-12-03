@@ -76,7 +76,7 @@ public class DoctorValidationListener {
                     .orElse("Không xác định");
 
             DoctorValidatedEvent validatedEvent = DoctorValidatedEvent.builder()
-                    .sagaId(event.getSagaId())
+                    .sagaId(event.getSagaId().toString())
                     .appointmentId(event.getAppointmentId())
                     .doctorUserId(doctorUserId)
                     .doctorEmail(doctorUser.getEmail())
@@ -99,7 +99,7 @@ public class DoctorValidationListener {
 
     private void publishValidationFailed(AppointmentCreatedEvent event, String reason) {
         ValidationFailedEvent failedEvent = ValidationFailedEvent.builder()
-                .sagaId(event.getSagaId())
+                .sagaId(event.getSagaId().toString())
                 .appointmentId(event.getAppointmentId())
                 .reason(reason)
                 .failedService("userprofile-service")
