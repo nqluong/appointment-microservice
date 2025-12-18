@@ -12,6 +12,7 @@ import org.project.enums.SagaStatus;
 import org.project.enums.Status;
 import org.project.events.AppointmentCancellationInitiatedEvent;
 import org.project.events.AppointmentCreatedEvent;
+import org.project.exception.CodeGenerationException;
 import org.project.exception.CustomException;
 import org.project.exception.ErrorCode;
 import org.project.mapper.AppointmentMapper;
@@ -24,6 +25,7 @@ import org.project.repository.SagaStateRepository;
 import org.project.service.AppointmentService;
 import org.project.service.AppointmentValidator;
 import org.project.service.OutboxService;
+import org.project.utils.AppointmentCodeGenerator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,7 +46,7 @@ import java.util.concurrent.Executor;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AppointmentService2 implements AppointmentService {
+public class AppointmentService2Impl implements AppointmentService {
 
     AppointmentRepository appointmentRepository;
     SagaStateRepository sagaStateRepository;
@@ -58,6 +60,9 @@ public class AppointmentService2 implements AppointmentService {
     AppointmentMapper appointmentMapper;
     Executor validationExecutor;
     AppointmentEventProducer eventProducer;
+    AppointmentCodeGenerator codeGenerator;
+
+    private static final int MAX_RETRY_ATTEMPTS = 5;
 
     @Override
     public PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
@@ -73,6 +78,15 @@ public class AppointmentService2 implements AppointmentService {
         Page<Appointment> appointments = appointmentRepository
                 .findByDoctorIdAndStatusIn(doctorId, statuses, pageable);
         return pageMapper.toPageResponse(appointments, appointmentMapper::toDto);
+    }
+
+    @Override
+    public AppointmentDtoResponse getAppointmentDetails(UUID appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(
+                () -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND)
+        );
+
+        return appointmentMapper.toDto(appointment);
     }
 
     @Override
@@ -99,7 +113,7 @@ public class AppointmentService2 implements AppointmentService {
         UUID sagaId = UUID.randomUUID();
         UUID eventId = UUID.randomUUID();
         log.info("Creating appointment: sagaId={}, eventId={}", sagaId, eventId);
-
+        String publicCode = generateUniquePublicCode();
         // Validate
         validator.validatePatientInfo(request);
 
@@ -137,7 +151,7 @@ public class AppointmentService2 implements AppointmentService {
 
         // Create appointment
         Appointment appointment = factory.createAppointment(
-                request, effectivePatientId, doctor, slot, isGuestBooking
+                request, publicCode, effectivePatientId, doctor, slot, isGuestBooking
         );
         appointment = appointmentRepository.save(appointment);
 
@@ -295,6 +309,19 @@ public class AppointmentService2 implements AppointmentService {
     }
 
     @Override
+    public AppointmentDtoResponse getAppointmentByPublicCode(String publicCode) {
+        String normalizedCode = codeGenerator.normalizeCode(publicCode);
+        if(!codeGenerator.isValidFormat(normalizedCode)) {
+            throw new CustomException(ErrorCode.INVALID_APPOINTMENT_CODE);
+        }
+
+        Appointment appointment = appointmentRepository.findByPublicCode(normalizedCode)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPOINTMENT_NOT_FOUND));
+
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
     public PageResponse<AppointmentResponse> getAppointments(UUID userId, Status status,
                                                              Pageable pageable) {
         throw new UnsupportedOperationException("Not implemented yet");
@@ -309,5 +336,21 @@ public class AppointmentService2 implements AppointmentService {
     public List<AppointmentInternalResponse> getAffectedByTimeRange(
             UUID doctorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private String generateUniquePublicCode() {
+        int attempts = 0;
+
+        while (attempts < MAX_RETRY_ATTEMPTS) {
+            String publicCode = codeGenerator.generatePublicCode();
+
+            if (appointmentRepository.existsByPublicCode(publicCode)) {
+                return publicCode;
+            }
+
+            attempts++;
+        }
+
+        throw new CodeGenerationException("Unable to generate unique appointment code. Please try again.");
     }
 }

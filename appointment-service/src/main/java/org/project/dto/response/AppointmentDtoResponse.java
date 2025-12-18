@@ -22,6 +22,13 @@ public class AppointmentDtoResponse {
     UUID doctorId;
     UUID patientId;
     UUID slotId;
+    String publicCode;
+    String doctorName;
+    String doctorPhone;
+    String patientName;
+    String specialtyName;
+    String patientPhone;
+    String patientEmail;
     LocalDate appointmentDate;
     LocalTime startTime;
     LocalTime endTime;

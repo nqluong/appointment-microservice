@@ -117,6 +117,8 @@ public enum ErrorCode {
     APPOINTMENT_CANCELLATION_FAILED(8019, "Hủy lịch hẹn thất bại", HttpStatus.BAD_REQUEST),
     APPOINTMENT_CONFIRMATION_FAILED(8020, "Xác nhận lịch hẹn thất bại", HttpStatus.BAD_REQUEST),
     CONSULTATION_FEE_NOT_FOUND(8027, "Bác sĩ chưa cấu hình phí tư vấn", HttpStatus.BAD_REQUEST),
+    INVALID_APPOINTMENT_CODE(8028, "Mã lịch hẹn không hợp lệ", HttpStatus.BAD_REQUEST),
+
 
     // Lỗi kiểm tra trạng thái
     INVALID_STATUS_TRANSITION(8021, "Chuyển đổi trạng thái không hợp lệ", HttpStatus.BAD_REQUEST),
@@ -202,6 +204,7 @@ public enum ErrorCode {
     SAGA_COMPENSATION_FAILED(1503, "Bù trừ saga thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
     SAGA_ALREADY_COMPLETED(1504, "Saga đã được hoàn thành", HttpStatus.CONFLICT),
     SAGA_ALREADY_COMPENSATED(1505, "Saga đã được bù trừ", HttpStatus.CONFLICT),
+
 
     ;
 

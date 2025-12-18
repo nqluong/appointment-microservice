@@ -14,6 +14,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MedicalProfileRepository extends JpaRepository<MedicalProfile, UUID> {
+
+    Optional<MedicalProfileResponse> findByUserId(UUID userId);
+
     boolean existsByLicenseNumber(String licenseNumber);
 
     @Query("""
@@ -39,7 +42,7 @@ public interface MedicalProfileRepository extends JpaRepository<MedicalProfile, 
         LEFT JOIN Specialty s ON s.id = mp.specialty.id
         WHERE up.userId = :userId
     """)
-    Optional<MedicalProfileResponse> findByUserId(@Param("userId") UUID userId);
+    Optional<MedicalProfileResponse> findMedicalProfileResponseByUserId(@Param("userId") UUID userId);
 
     @Query("""
         SELECT up.userId
@@ -49,4 +52,21 @@ public interface MedicalProfileRepository extends JpaRepository<MedicalProfile, 
         ORDER BY up.createdAt DESC
     """)
     List<UUID> findApprovedDoctorIds(Pageable pageable);
+
+    @Query("""
+        SELECT mp
+        FROM MedicalProfile mp
+        JOIN FETCH mp.specialty s
+        WHERE mp.specialty.id = :specialtyId
+        AND mp.isDoctorApproved = true
+    """)
+    List<MedicalProfile> findApprovedMedicalProfilesBySpecialtyId(@Param("specialtyId") UUID specialtyId);
+
+    @Query("""
+        SELECT COUNT(mp)
+        FROM MedicalProfile mp
+        WHERE mp.specialty.id = :specialtyId
+        AND mp.isDoctorApproved = true
+    """)
+    Long countApprovedDoctorsBySpecialtyId(@Param("specialtyId") UUID specialtyId);
 }

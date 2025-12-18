@@ -1,9 +1,7 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.UUID;
 
 import org.project.dto.PageResponse;
 import org.project.dto.request.SpecialtyRequest;
@@ -22,8 +20,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +59,7 @@ public class SpecialtyServiceImpl implements SpecialtyService {
     @Transactional(readOnly = true)
     public List<SpecialtyResponse> getAllActiveSpecialties() {
         List<Specialty> specialties = specialtyRepository.findByIsActiveTrue();
-        return specialtyMapper.toResponseDtoList(specialties);
+        return specialtyMapper.toResponseDtoListWithCount(specialties);
     }
 
     @Override

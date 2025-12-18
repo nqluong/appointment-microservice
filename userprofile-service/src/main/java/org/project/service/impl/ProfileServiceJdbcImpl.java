@@ -15,6 +15,7 @@ import org.project.mapper.ProfileMapper;
 import org.project.model.UserProfile;
 import org.project.repository.ProfileJdbcRepository;
 import org.project.repository.UserProfileRepository;
+import org.project.service.AvatarUrlService;
 import org.project.service.ProfileService;
 import org.project.service.strategy.FieldFilterStrategy;
 import org.project.service.strategy.FieldFilterStrategyFactory;
@@ -33,7 +34,7 @@ public class ProfileServiceJdbcImpl implements ProfileService {
     UserProfileRepository userProfileRepository;
     ProfileJdbcRepository profileJdbcRepository;
     ProfileMapper profileMapper;
-//    UserRoleService userRoleService;
+    AvatarUrlService avatarUrlService;
     FieldFilterStrategyFactory fieldFilterStrategyFactory;
     SecurityUtils securityUtils;
 
@@ -57,14 +58,18 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             }
 
             CompleteProfileResponse response = getCompleteProfileFromRepository(userId);
-            log.info("Unified profile update completed successfully for userId: {}", userId);
+            
+            // Generate presigned URL cho avatar nếu có
+            response = enrichWithPresignedAvatarUrl(response);
+            
+            log.info("Cập nhật profile thành công cho userId: {}", userId);
             return response;
 
         } catch (CustomException e) {
-            log.error("Failed to update unified profile for userId: {} - {}", userId, e.getMessage());
+            log.error("Lỗi khi cập nhật profile cho userId: {} - {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error updating unified profile for userId: {}", userId, e);
+            log.error("Lỗi không mong đợi khi cập nhật profile cho userId: {}", userId, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -72,17 +77,20 @@ public class ProfileServiceJdbcImpl implements ProfileService {
     @Override
     public CompleteProfileResponse getCompleteProfile(UUID userId) {
         try {
-            log.info("Getting complete profile for userId: {}", userId);
+            log.info("Lấy complete profile cho userId: {}", userId);
 
-            //User user = findUserByIdOrThrow(userId);
+            CompleteProfileResponse response = getCompleteProfileFromRepository(userId);
+            
+            // Generate presigned URL cho avatar nếu có
+            response = enrichWithPresignedAvatarUrl(response);
 
-            return getCompleteProfileFromRepository(userId);
+            return response;
 
         } catch (CustomException e) {
-            log.error("Failed to retrieve complete profile for userId: {} - {}", userId, e.getMessage());
+            log.error("Lỗi khi lấy complete profile cho userId: {} - {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error retrieving complete profile for userId: {}", userId, e);
+            log.error("Lỗi không mong đợi khi lấy complete profile cho userId: {}", userId, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -104,6 +112,33 @@ public class ProfileServiceJdbcImpl implements ProfileService {
         return profileMapper.toCompleteProfileResponse(completeUser);
     }
 
+    /**
+     * Bổ sung presigned URL cho avatar nếu có
+     */
+    private CompleteProfileResponse enrichWithPresignedAvatarUrl(CompleteProfileResponse response) {
+        if (response == null) {
+            return null;
+        }
+
+        try {
+            String avatarFileName = response.getAvatarUrl();
+            
+            if (avatarFileName != null && !avatarFileName.trim().isEmpty()) {
+                String presignedUrl = avatarUrlService.generatePresignedUrl(avatarFileName);
+                
+                if (presignedUrl != null) {
+                    response.setAvatarUrl(presignedUrl);
+                } else {
+                    log.warn("Không thể generate presigned URL cho avatar: {}", avatarFileName);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi generate presigned URL cho avatar: {}", e.getMessage(), e);
+            // Không throw exception, giữ nguyên avatarUrl gốc
+        }
+
+        return response;
+    }
 
     private Set<String> getUserRoles(UUID userId) {
         return new HashSet<>(securityUtils.getCurrentUserRoles());

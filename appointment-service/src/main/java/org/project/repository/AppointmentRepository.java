@@ -21,8 +21,15 @@ import java.util.UUID;
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
 
+    boolean existsByPublicCode(String publicCode);
 
-     //Kiểm tra xem bệnh nhân có lịch hẹn trùng thời gian không
+    Optional<Appointment> findByPublicCode(String publicCode);
+
+    List<Appointment> findAllByPublicCodeIsNull();
+
+
+
+    //Kiểm tra xem bệnh nhân có lịch hẹn trùng thời gian không
      @Query("""
             SELECT COUNT(a) > 0 FROM Appointment a
             WHERE a.patientUserId = :patientId

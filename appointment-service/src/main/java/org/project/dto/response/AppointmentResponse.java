@@ -26,6 +26,7 @@ import lombok.experimental.FieldDefaults;
 public class AppointmentResponse {
     UUID appointmentId;
     UUID doctorId;
+    String publicCode;
     String doctorName;
     String doctorPhone;
     String specialtyName;

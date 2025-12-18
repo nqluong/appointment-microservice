@@ -40,7 +40,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/specialties/public",
             "/api/schedules/public",
             "/api/doctors/public",
-            "/api/doctor-slots/public"
+            "/api/doctor-slots/public",
+            "/api/appointments/public"
     );
 
 

@@ -3,8 +3,8 @@ package org.project.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.project.utils.NameUtils;
 import org.project.dto.response.AppointmentDtoResponse;
-import org.project.dto.response.AppointmentResponse;
 import org.project.model.Appointment;
 
 
@@ -13,6 +13,7 @@ public interface AppointmentMapper {
     @Mapping(source = "id", target = "appointmentId")
     @Mapping(source = "doctorUserId", target = "doctorId")
     @Mapping(source = "patientUserId", target = "patientId")
+    @Mapping(target = "doctorName", qualifiedByName = "formatDoctorTitle")
     AppointmentDtoResponse toDto(Appointment appointment);
 
 //    @Mapping(source = "id", target = "appointmentId")
@@ -51,4 +52,9 @@ public interface AppointmentMapper {
 //        }
 //        return doctor.getMedicalProfile().getSpecialty().getName();
 //    }
+
+    @Named("formatDoctorTitle")
+    default String formatDoctorTitle(String fullName) {
+        return NameUtils.formatDoctorFullName(fullName);
+    }
 }

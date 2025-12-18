@@ -21,6 +21,7 @@ import java.util.UUID;
 public class AppointmentFactory {
 
     public Appointment createAppointment(CreateAppointmentRequest request,
+                                         String publicCode,
                                          UUID effectivePatientId,
                                          DoctorResponse doctor,
                                          SlotDetailsResponse slot,
@@ -30,6 +31,7 @@ public class AppointmentFactory {
                 .doctorName(doctor.getFullName())
                 .doctorPhone(doctor.getPhone())
                 .specialtyName(doctor.getSpecialtyName())
+                .publicCode(publicCode)
                 .patientUserId(effectivePatientId)
                 .patientName(request.getPatientName())
                 .patientEmail(request.getPatientEmail())
@@ -88,6 +90,7 @@ public class AppointmentFactory {
 
     public AppointmentResponse toResponse(Appointment appointment) {
         return AppointmentResponse.builder()
+                .publicCode(appointment.getPublicCode())
                 .appointmentId(appointment.getId())
                 .doctorId(appointment.getDoctorUserId())
                 .doctorName(appointment.getDoctorName())

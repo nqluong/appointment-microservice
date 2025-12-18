@@ -80,6 +80,9 @@ public class Appointment {
     @Column(name = "status")
     Status status = Status.PENDING;
 
+    @Column(name = "public_code", unique = true, nullable = false, length = 15)
+    String publicCode;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     LocalDateTime createdAt;

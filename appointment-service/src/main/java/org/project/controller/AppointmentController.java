@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.project.common.security.annotation.RequireOwnershipOrAdmin;
 import org.project.common.security.util.SecurityUtils;
+import org.project.dto.ApiResponse;
 import org.project.dto.PageResponse;
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.request.CancelAppointmentRequest;
@@ -44,6 +45,8 @@ public class AppointmentController {
             @RequestParam(defaultValue = "DESC") String sortDirection,
             @RequestParam(defaultValue = "appointmentDate") String sortBy) {
 
+        log.info("Thông tin get user appointments: userId={}, statuses={}, page={}, size={}, sortDirection={}, sortBy={}",
+                userId, statuses, page, size, sortDirection, sortBy);
         securityUtils.validateUserAccess(userId);
                 Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
                 ? Sort.Direction.ASC
@@ -55,6 +58,19 @@ public class AppointmentController {
                 .getUserAppointmentsByStatus(userId, statuses, pageable);
 
         return ResponseEntity.ok(appointments);
+    }
+
+    @GetMapping("/public/lookup/{publicCode}")
+    public ResponseEntity<ApiResponse<AppointmentDtoResponse>> lookupAppointment(
+            @PathVariable String publicCode) {
+
+        AppointmentDtoResponse response = appointmentService.getAppointmentByPublicCode(publicCode);
+
+        return ResponseEntity.ok(ApiResponse.<AppointmentDtoResponse>builder()
+                .code(HttpStatus.OK.value())
+                .message("Appointment found")
+                .data(response)
+                .build());
     }
 
     @GetMapping("/doctor/{doctorId}")
@@ -87,9 +103,9 @@ public class AppointmentController {
     }
 
     @GetMapping("/{appointmentId}")
-    public ResponseEntity<AppointmentResponse> getAppointment(@PathVariable UUID appointmentId) {
-
-        AppointmentResponse response = appointmentService.getAppointment(appointmentId);
+    public ResponseEntity<AppointmentDtoResponse> getAppointmentDetails(@PathVariable UUID appointmentId) {
+        log.info("Thông tin cho appointment");
+        AppointmentDtoResponse response = appointmentService.getAppointmentDetails(appointmentId);
         return ResponseEntity.ok(response);
     }
 

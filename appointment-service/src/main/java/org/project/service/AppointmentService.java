@@ -15,6 +15,9 @@ import org.project.enums.Status;
 import org.springframework.data.domain.Pageable;
 
 public interface AppointmentService {
+
+    AppointmentDtoResponse getAppointmentByPublicCode(String publicCode);
+
     PageResponse<AppointmentDtoResponse> getUserAppointmentsByStatus(
             UUID patientId,
             List<Status> statuses,
@@ -28,6 +31,8 @@ public interface AppointmentService {
     AppointmentResponse createAppointment(CreateAppointmentRequest request);
 
     AppointmentResponse getAppointment(UUID appointmentId);
+
+    AppointmentDtoResponse getAppointmentDetails(UUID appointmentId);
 
     AppointmentResponse cancelAppointment(UUID appointmentId, String reason);
 

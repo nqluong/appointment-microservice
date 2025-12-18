@@ -9,6 +9,7 @@ import org.project.exception.CustomException;
 import org.project.repository.MedicalProfileRepository;
 import org.project.service.DoctorService;
 import org.project.service.MedicalProfileService;
+import org.project.util.NameUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +46,7 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
         // Chuyển đổi MedicalProfileResponse thành DoctorResponse
         return DoctorResponse.builder()
                 .userId(profile.getUserId())
-                .fullName(profile.getFirstName() + " " + profile.getLastName())
+                .fullName(NameUtils.formatDoctorFullName(profile.getFirstName() + " " + profile.getLastName()))
                 .email(null) // Email không có trong MedicalProfileResponse, có thể cần lấy từ user service
                 .gender(profile.getGender() != null ? profile.getGender().toString() : null)
                 .phone(profile.getPhone())
