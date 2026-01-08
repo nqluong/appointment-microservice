@@ -1,20 +1,19 @@
 package org.project.process;
 
-import lombok.extern.slf4j.Slf4j;
-import org.project.dto.cache.DoctorAvailabilityCacheData;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.project.dto.cache.TimeSlot;
 import org.project.model.DoctorAvailableSlot;
 import org.project.repository.DoctorAvailableSlotRepository;
 import org.project.service.DoctorSlotRedisCache;
 import org.project.service.RedisCacheService;
 
-import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
@@ -24,12 +23,9 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
     private final DoctorAvailableSlotRepository slotRepository;
     private final DoctorSlotRedisCache doctorSlotRedisCache;
     
-    // Redis queue key where userprofile-service pushes doctor IDs
     private static final String QUEUE_KEY = "doctor_availability_cache_queue";
-    private static final String CACHE_PREFIX = "doctor:availability:";
-    private static final int CACHE_TTL_DAYS = 1; // Cache for 1 day
-    private static final int DAYS_TO_CACHE = 14; // Cache next 14 days of availability
-    private static final long POLL_TIMEOUT_MS = 2000; // Wait 2 seconds for queue items
+    private static final int DAYS_TO_CACHE = 14;
+    private static final long POLL_TIMEOUT_MS = 2000;
     private static final long ERROR_RETRY_DELAY_MS = 1000;
     
     private volatile boolean running = true;
@@ -56,11 +52,11 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
                         processDoctorAvailability(doctorIdStr);
                         long duration = System.currentTimeMillis() - startTime;
                         
-                        log.info("Cached availability for doctorId: {} in {}ms", doctorIdStr, duration);
+                        log.info("Đã cache lịch khám cho doctorId: {} trong {}ms", doctorIdStr, duration);
                     }
 
                 } catch (Exception e) {
-                    log.error("Error processing availability: {}", e.getMessage(), e);
+                    log.error("Lỗi khi xử lý cache lịch khám: {}", e.getMessage(), e);
                     try {
                         Thread.sleep(ERROR_RETRY_DELAY_MS);
                     } catch (InterruptedException ie) {
@@ -70,10 +66,10 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
                 }
             }
         } catch (Exception e) {
-            log.error("Fatal error in cache worker: {}", e.getMessage(), e);
+            log.error("Lỗi nghiêm trọng trong cache worker: {}", e.getMessage(), e);
         }
 
-        log.info("Doctor availability cache worker stopped - Thread: {}", Thread.currentThread().getName());
+        log.info("Cache worker đã dừng - Thread: {}", Thread.currentThread().getName());
     }
 
 
@@ -91,7 +87,6 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
                 return;
             }
 
-            // Group slots by date for efficient caching
             Map<LocalDate, List<DoctorAvailableSlot>> slotsByDate = slots.stream()
                     .collect(Collectors.groupingBy(DoctorAvailableSlot::getSlotDate));
 
@@ -139,12 +134,12 @@ public class DoctorAvailabilityCacheProcess implements Runnable {
                 .startTime(slot.getStartTime())
                 .endTime(slot.getEndTime())
                 .isAvailable(slot.isAvailable())
+                .lastUpdate(slot.getUpdatedAt())
                 .build();
     }
 
 
     public void stop() {
-        log.info("Stopping cache worker - Thread: {}", Thread.currentThread().getName());
         running = false;
     }
 }

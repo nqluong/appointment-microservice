@@ -1,6 +1,7 @@
 package org.project.dto.cache;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,5 +20,6 @@ public class DoctorAvailabilityCacheData {
     private List<TimeSlot> slots;
     private int totalSlots;
     private long cachedAt; // Timestamp when cached
+    private LocalDateTime lastUpdate; // Latest updatedAt from all slots for this date
 }
 

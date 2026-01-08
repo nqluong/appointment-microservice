@@ -1,7 +1,15 @@
 package org.project.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.project.dto.cache.DoctorAvailabilityCacheData;
 import org.project.dto.cache.TimeSlot;
 import org.project.service.DoctorSlotRedisCache;
@@ -9,10 +17,8 @@ import org.project.service.RedisCacheService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -41,12 +47,22 @@ public class DoctorSlotRedisCacheImpl implements DoctorSlotRedisCache {
 
             Map<String, Object> hashData = new HashMap<>();
 
+            // Tìm thời gian cập nhật mới nhất từ tất cả slots
+            java.time.LocalDateTime latestUpdate = slots.stream()
+                    .map(TimeSlot::getLastUpdate)
+                    .filter(Objects::nonNull)
+                    .max(java.time.LocalDateTime::compareTo)
+                    .orElse(null);
+
             // Lưu metadata
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("doctorId", doctorId.toString());
             metadata.put("date", date.toString());
             metadata.put("totalSlots", slots.size());
             metadata.put("cachedAt", System.currentTimeMillis());
+            if (latestUpdate != null) {
+                metadata.put("lastUpdate", latestUpdate.toString());
+            }
             hashData.put(METADATA_FIELD, metadata);
 
             // Lưu từng slot
@@ -106,12 +122,23 @@ public class DoctorSlotRedisCacheImpl implements DoctorSlotRedisCache {
 
             log.debug("Cache hit for doctor {} on {} with {} slots", doctorId, date, slots.size());
 
+            // Parse lastUpdate nếu có
+            java.time.LocalDateTime lastUpdate = null;
+            if (metadata.containsKey("lastUpdate")) {
+                try {
+                    lastUpdate = java.time.LocalDateTime.parse((String) metadata.get("lastUpdate"));
+                } catch (Exception e) {
+                    log.warn("Failed to parse lastUpdate from cache: {}", e.getMessage());
+                }
+            }
+
             return DoctorAvailabilityCacheData.builder()
                     .doctorId(doctorId)
                     .date(date)
                     .slots(slots)
                     .totalSlots(slots.size())
                     .cachedAt(((Number) metadata.get("cachedAt")).longValue())
+                    .lastUpdate(lastUpdate)
                     .build();
 
         } catch (Exception e) {

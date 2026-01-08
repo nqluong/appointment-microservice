@@ -1,5 +1,6 @@
 package org.project.dto.cache;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
 
@@ -17,5 +18,6 @@ public class TimeSlot {
     private LocalTime startTime;
     private LocalTime endTime;
     private boolean isAvailable;
+    private LocalDateTime lastUpdate; // Timestamp from database updatedAt field
 }
 

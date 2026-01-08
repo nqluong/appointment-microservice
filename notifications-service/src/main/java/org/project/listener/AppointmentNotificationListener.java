@@ -67,8 +67,6 @@ public class AppointmentNotificationListener {
     )
     public void handleAppointmentCancelled(AppointmentCancelledEvent event, Acknowledgment acknowledgment) {
         try {
-            log.info("Nhận AppointmentCancelledEvent: appointmentId={}, patientEmail={}, reason={}", 
-                    event.getAppointmentId(), event.getPatientEmail(), event.getReason());
 
             AppointmentFailureNotificationRequest notificationRequest = AppointmentFailureNotificationRequest.builder()
                     .patientEmail(event.getPatientEmail())
@@ -80,7 +78,7 @@ public class AppointmentNotificationListener {
                             : null)
                     .reason(event.getReason())
                     .transactionId(event.getTransactionId())
-                    .failureTime(event.getTimestamp())
+                    .failureTime(event.getTimeStamp())
                     .build();
 
             asyncEmailService.sendAppointmentFailureEmailAsync(notificationRequest);

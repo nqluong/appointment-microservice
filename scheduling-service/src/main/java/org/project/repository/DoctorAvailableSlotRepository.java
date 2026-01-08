@@ -1,6 +1,7 @@
 package org.project.repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -121,6 +122,16 @@ public interface DoctorAvailableSlotRepository extends JpaRepository <DoctorAvai
             "ORDER BY s.slotDate, s.startTime")
     List<DoctorAvailableSlot> findSlotsByDoctorAndDateRange(
             @Param("doctorId") UUID doctorId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT s FROM DoctorAvailableSlot s " +
+            "WHERE s.updatedAt >= :updatedAfter " +
+            "AND s.slotDate BETWEEN :startDate AND :endDate " +
+            "ORDER BY s.updatedAt DESC")
+    List<DoctorAvailableSlot> findRecentlyUpdatedSlots(
+            @Param("updatedAfter") LocalDateTime updatedAfter,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );

@@ -28,11 +28,9 @@ public class SchedulingCacheScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
         try {
-            log.info("Initializing scheduling cache scheduler...");
             cleanupExpiredSlots();
-            log.info("Scheduling cache scheduler initialized successfully");
         } catch (Exception ex) {
-            log.error("Error initializing scheduling cache scheduler: {}", ex.getMessage(), ex);
+            log.error("Lỗi khi khởi tạo scheduling cache scheduler: {}", ex.getMessage(), ex);
         }
     }
 
@@ -40,7 +38,6 @@ public class SchedulingCacheScheduler {
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanupExpiredSlots() {
         try {
-            log.info("Starting cleanup of expired availability slots...");
 
             LocalDate today = LocalDate.now();
             String basePattern = "doctor:availability:*";
@@ -48,11 +45,11 @@ public class SchedulingCacheScheduler {
             Set<String> allKeys = redisCacheService.keys(basePattern);
 
             if (allKeys == null || allKeys.isEmpty()) {
-                log.info("No availability cache keys found for cleanup");
+                log.info("Không tìm thấy cache key nào để dọn dẹp");
                 return;
             }
 
-            log.info("Found {} availability cache keys to check", allKeys.size());
+            log.info("Tìm thấy {} cache key để kiểm tra", allKeys.size());
 
             List<String> expiredKeys = new ArrayList<>();
             for (String key : allKeys) {
@@ -67,20 +64,20 @@ public class SchedulingCacheScheduler {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to parse cache key: {} - {}", key, e.getMessage());
+                    log.warn("Không thể phân tích cache key: {} - {}", key, e.getMessage());
                 }
             }
 
             if (!expiredKeys.isEmpty()) {
                 long deletedCount = redisCacheService.delete(expiredKeys);
-                log.info("Cleanup completed: removed {} expired slot caches from {} keys",
+                log.info("Hoàn thành dọn dẹp: đã xóa {} cache hết hạn từ {} key",
                         deletedCount, expiredKeys.size());
             } else {
-                log.info("No expired slots found to cleanup");
+                log.info("Không tìm thấy slot hết hạn nào để dọn dẹp");
             }
 
         } catch (Exception ex) {
-            log.error("Error in cleanup job: {}", ex.getMessage(), ex);
+            log.error("Lỗi trong công việc dọn dẹp: {}", ex.getMessage(), ex);
         }
     }
 
@@ -92,15 +89,15 @@ public class SchedulingCacheScheduler {
             Long queueSize = redisCacheService.getListSize(queueKey);
 
             if (queueSize != null && queueSize > 0) {
-                log.info("Availability cache queue size: {} pending doctor IDs", queueSize);
+                log.info("Kích thước queue cache: {} doctor ID đang chờ xử lý", queueSize);
 
                 if (queueSize > 100) {
-                    log.warn("ALERT: Availability cache queue has {} pending items - may indicate processing delay",
+                    log.warn("CẢNH BÁO: Queue cache có {} mục đang chờ - có thể bị chậm xử lý",
                             queueSize);
                 }
             }
         } catch (Exception ex) {
-            log.error("Error monitoring queue size: {}", ex.getMessage(), ex);
+            log.error("Lỗi khi giám sát kích thước queue: {}", ex.getMessage(), ex);
         }
     }
 }
