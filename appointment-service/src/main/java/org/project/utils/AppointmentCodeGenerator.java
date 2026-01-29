@@ -9,7 +9,7 @@ import java.security.SecureRandom;
 @Component
 public class AppointmentCodeGenerator {
     private static final String PREFIX = "AP";
-    private static final int CODE_LENGTH = 8;
+    private static final int RANDOM_LENGTH = 4;
 
     private static final String SAFE_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -17,7 +17,10 @@ public class AppointmentCodeGenerator {
     public String generatePublicCode() {
         StringBuilder code = new StringBuilder(PREFIX);
 
-        for (int i = 0; i < CODE_LENGTH; i++) {
+        long timestamp = System.currentTimeMillis();
+        code.append(timestamp);
+
+        for (int i = 0; i < RANDOM_LENGTH; i++) {
             int randomIndex = SECURE_RANDOM.nextInt(SAFE_CHARS.length());
             code.append(SAFE_CHARS.charAt(randomIndex));
         }
@@ -30,19 +33,26 @@ public class AppointmentCodeGenerator {
             return false;
         }
 
-        if (code.length() != 10) {
-            return false;
-        }
-
         // Kiểm tra prefix
         if (!code.startsWith(PREFIX)) {
             return false;
         }
 
-        // Kiểm tra 8 ký tự sau prefix
-        String codeBody = code.substring(2);
-        for (char c : codeBody.toCharArray()) {
-            if (SAFE_CHARS.indexOf(c) == -1) {
+        if (code.length() < 19) {
+            return false;
+        }
+
+        String timestampPart = code.substring(2, 15);
+        try {
+            Long.parseLong(timestampPart);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+
+        // Kiểm tra phần random (4 ký tự cuối)
+        String randomPart = code.substring(15);
+        for (char c : randomPart.toCharArray()) {
+            if (SAFE_CHARS.indexOf(c) == -1 && !Character.isDigit(c)) {
                 return false;
             }
         }

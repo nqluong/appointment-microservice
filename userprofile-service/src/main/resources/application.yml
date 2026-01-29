@@ -2,7 +2,7 @@ spring:
   application:
     name: userprofile-service
   datasource:
-    url: "jdbc:${DB_URL_PROFILE}"
+    url: "jdbc:${DB_URL_PROFILE:postgresql://localhost:5432/userprofile_service}"
     username: ${DB_USERNAME_PROFILE}
     password: ${DB_PASSWORD_PROFILE}
     driver-class-name: "org.postgresql.Driver"
@@ -60,6 +60,8 @@ cache:
       key-prefix: "doctor:profile:"
       page-size: 50
       max-pages: 10
+      update-queue: "doctor:profile:update-queue"
+      update-worker-delay-ms: 1000
 
 server:
   port: 0

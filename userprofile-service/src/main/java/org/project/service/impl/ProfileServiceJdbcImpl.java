@@ -1,9 +1,9 @@
 package org.project.service.impl;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import org.project.common.security.util.SecurityUtils;
 import org.project.dto.request.ProfileUpdateRequest;
 import org.project.dto.response.CompleteProfileProjection;
@@ -17,14 +17,18 @@ import org.project.repository.ProfileJdbcRepository;
 import org.project.repository.UserProfileRepository;
 import org.project.service.AvatarUrlService;
 import org.project.service.ProfileService;
+import org.project.service.RedisCacheService;
 import org.project.service.strategy.FieldFilterStrategy;
 import org.project.service.strategy.FieldFilterStrategyFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +41,11 @@ public class ProfileServiceJdbcImpl implements ProfileService {
     AvatarUrlService avatarUrlService;
     FieldFilterStrategyFactory fieldFilterStrategyFactory;
     SecurityUtils securityUtils;
+    RedisCacheService redisCacheService;
+
+    @NonFinal
+    @Value("${cache.doctor.profile.update-queue:doctor:profile:update_queue}")
+    String profileUpdateQueueKey;
 
     @Override
     @Transactional
@@ -62,6 +71,13 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             // Generate presigned URL cho avatar nếu có
             response = enrichWithPresignedAvatarUrl(response);
             
+            try {
+                redisCacheService.leftPush(profileUpdateQueueKey, userId.toString());
+                log.debug("Đã đẩy userId {} vào queue cập nhật cache", userId);
+            } catch (Exception e) {
+                log.error("Lỗi khi đẩy userId vào queue cập nhật cache: {}", userId, e);
+            }
+            
             log.info("Cập nhật profile thành công cho userId: {}", userId);
             return response;
 
@@ -69,7 +85,7 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             log.error("Lỗi khi cập nhật profile cho userId: {} - {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Lỗi không mong đợi khi cập nhật profile cho userId: {}", userId, e);
+            log.error("Lỗi khi cập nhật profile cho userId: {}", userId, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -90,7 +106,7 @@ public class ProfileServiceJdbcImpl implements ProfileService {
             log.error("Lỗi khi lấy complete profile cho userId: {} - {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Lỗi không mong đợi khi lấy complete profile cho userId: {}", userId, e);
+            log.error("Lỗi khi lấy complete profile cho userId: {}", userId, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }

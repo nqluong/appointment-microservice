@@ -1,5 +1,6 @@
 package org.project.scheduler;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,9 +24,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -53,6 +52,12 @@ public class DoctorProfileCacheScheduler {
 
     @Value("${cache.doctor.profile.max-pages:10}")
     private int maxProfilePages;
+
+    @Value("${cache.doctor.profile.update-queue:doctor:profile:update_queue}")
+    private String profileUpdateQueueKey;
+
+    @Value("${cache.doctor.profile.update-worker-delay-ms:1000}")
+    private long updateWorkerDelayMs;
 
 
     @EventListener(ApplicationReadyEvent.class)
@@ -151,6 +156,66 @@ public class DoctorProfileCacheScheduler {
             log.debug("Đã enrich avatar URLs cho {} bác sĩ trong cache job", doctors.size());
         } catch (Exception e) {
             log.error("Lỗi khi enrich avatar URLs trong cache job: {}", e.getMessage(), e);
+        }
+    }
+
+
+    @Async("taskExecutor")
+    @Scheduled(fixedDelayString = "${cache.doctor.profile.update-worker-delay-ms:1000}")
+    public void processCacheUpdateQueue() {
+        try {
+            // Lấy userId từ queue (blocking với timeout 5 giây)
+            Object userIdObj = redisCacheService.rightPop(profileUpdateQueueKey, 5, TimeUnit.SECONDS);
+            
+            if (userIdObj == null) {
+                return;
+            }
+
+            UUID userId;
+            try {
+                userId = UUID.fromString(userIdObj.toString());
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid userId format in queue: {}", userIdObj, e);
+                return;
+            }
+
+            log.debug("Processing cache update for userId: {}", userId);
+
+            List<UUID> doctorIds = List.of(userId);
+            Pageable pageable = PageRequest.of(0, 1);
+            Page<DoctorProjection> doctorPage = doctorRepository
+                    .findApprovedDoctorsByUserIds(doctorIds, pageable);
+
+            if (doctorPage.isEmpty()) {
+                log.debug("UserId {} không phải là doctor đã được approve, bỏ qua cập nhật cache", userId);
+                return;
+            }
+
+            // Lấy thông tin doctor và cập nhật cache
+            DoctorProjection doctorProjection = doctorPage.getContent().get(0);
+            DoctorResponse doctorResponse = doctorMapper.projectionToResponse(doctorProjection);
+
+            // Enrich avatar URL
+            if (doctorResponse.getAvatarUrl() != null && !doctorResponse.getAvatarUrl().isEmpty()) {
+                try {
+                    String presignedUrl = avatarUrlService.generatePresignedUrl(doctorResponse.getAvatarUrl());
+                    if (presignedUrl != null) {
+                        doctorResponse.setAvatarUrl(presignedUrl);
+                    }
+                } catch (Exception e) {
+                    log.error("Lỗi khi generate presigned URL cho doctor {}", userId, e);
+                }
+            }
+
+            // Cập nhật cache
+            String cacheKey = profileCachePrefix + userId;
+            redisCacheService.set(cacheKey, doctorResponse, profileCacheTtl, TimeUnit.DAYS);
+
+            log.info("Đã cập nhật cache cho doctor userId: {} - Last update: {}", 
+                    userId, doctorResponse.getLastUpdate());
+
+        } catch (Exception ex) {
+            log.error("Error processing cache update queue: {}", ex.getMessage(), ex);
         }
     }
 }

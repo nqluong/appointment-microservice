@@ -19,6 +19,7 @@ eureka:
 
 minio:
   endpoint: http://localhost:9000
+  public-endpoint: http://localhost:9000
   access-key: nqluong1405
   secret-key: nqluong140504
   bucket-name: avatars

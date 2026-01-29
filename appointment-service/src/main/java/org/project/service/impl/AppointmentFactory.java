@@ -2,6 +2,7 @@ package org.project.service.impl;
 
 import org.project.dto.request.CreateAppointmentRequest;
 import org.project.dto.request.CreatePaymentRequest;
+import org.project.dto.response.AppointmentInternalResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.dto.response.DoctorResponse;
 import org.project.dto.response.SlotDetailsResponse;
@@ -11,6 +12,7 @@ import org.project.enums.Status;
 import org.project.events.AppointmentCancellationInitiatedEvent;
 import org.project.events.AppointmentCreatedEvent;
 import org.project.model.Appointment;
+import org.project.utils.NameUtils;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -93,7 +95,7 @@ public class AppointmentFactory {
                 .publicCode(appointment.getPublicCode())
                 .appointmentId(appointment.getId())
                 .doctorId(appointment.getDoctorUserId())
-                .doctorName(appointment.getDoctorName())
+                .doctorName(NameUtils.formatDoctorFullName(appointment.getDoctorName()))
                 .doctorPhone(appointment.getDoctorPhone())
                 .specialtyName(appointment.getSpecialtyName())
                 .patientId(appointment.getPatientUserId())
@@ -107,6 +109,23 @@ public class AppointmentFactory {
                 .status(appointment.getStatus())
                 .notes(appointment.getNotes())
                 .doctorNotes(appointment.getDoctorNotes())
+                .createdAt(appointment.getCreatedAt())
+                .updatedAt(appointment.getUpdatedAt())
+                .build();
+    }
+
+    public AppointmentInternalResponse toInternalResponse(Appointment appointment) {
+        return AppointmentInternalResponse.builder()
+                .appointmentId(appointment.getId())
+                .doctorId(appointment.getDoctorUserId())
+                .patientId(appointment.getPatientUserId())
+                .appointmentDate(appointment.getAppointmentDate())
+                .slotId(appointment.getSlotId())
+                .consultationFee(appointment.getConsultationFee())
+                .reason(appointment.getNotes())
+                .notes(appointment.getNotes())
+                .doctorNotes(appointment.getDoctorNotes())
+                .status(appointment.getStatus())
                 .createdAt(appointment.getCreatedAt())
                 .updatedAt(appointment.getUpdatedAt())
                 .build();

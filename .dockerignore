@@ -1,0 +1,59 @@
+# Maven build artifacts
+**/target/
+**/dependency-reduced-pom.xml
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Docker files (to avoid recursive copying)
+**/Dockerfile
+**/.dockerignore
+docker-compose*.yml
+
+# Logs
+*.log
+logs/
+
+# Test files
+**/src/test/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# OS specific
+Thumbs.db
+Desktop.ini
+
+# Other
+*.class
+*.jar
+!**/target/*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar

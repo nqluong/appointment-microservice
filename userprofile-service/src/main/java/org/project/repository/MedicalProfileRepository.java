@@ -15,7 +15,30 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MedicalProfileRepository extends JpaRepository<MedicalProfile, UUID> {
 
-    Optional<MedicalProfileResponse> findByUserId(UUID userId);
+    @Query("""
+        SELECT new org.project.dto.response.MedicalProfileResponse(
+            m.id,
+            m.userId,
+            up.firstName,
+            up.lastName,
+            m.licenseNumber,
+            up.gender,
+            up.phone,
+            up.avatarUrl,
+            s.id,
+            s.name,
+            m.qualification,
+            m.yearsOfExperience,
+            m.consultationFee,
+            m.bio,
+            m.isDoctorApproved
+        )
+        FROM MedicalProfile m
+        JOIN m.specialty s
+        JOIN UserProfile up ON up.userId = m.userId
+        WHERE m.userId = :userId
+    """)
+    Optional<MedicalProfileResponse> findProfileByUserId(@Param("userId") UUID userId);
 
     boolean existsByLicenseNumber(String licenseNumber);
 

@@ -1,0 +1,257 @@
+version: '3.8'
+
+services:
+  
+  broker-1:
+    image: apache/kafka:latest
+    hostname: broker-1
+    container_name: broker-1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker-1:29093,2@broker-2:29093
+      KAFKA_LISTENERS: PLAINTEXT://broker-1:29092,CONTROLLER://broker-1:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    volumes:
+      - broker-1-data:/var/lib/kafka/data
+    networks:
+      - db_network
+
+  broker-2:
+    image: apache/kafka:latest
+    hostname: broker-2
+    container_name: broker-2
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-2:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker-1:29093,2@broker-2:29093
+      KAFKA_LISTENERS: PLAINTEXT://broker-2:29092,CONTROLLER://broker-2:29093,PLAINTEXT_HOST://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    volumes:
+      - broker-2-data:/var/lib/kafka/data
+    networks:
+      - db_network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-1:29092,broker-2:29092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_CLUSTERS_0_READONLY: "false"
+    networks:
+      - db_network
+  
+  # Eureka Discovery Server
+  discovery-server:
+    build:
+      context: .
+      dockerfile: discovery-server/Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - db_network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - db_network
+
+  # File Service
+  file-service:
+    build:
+      context: .
+      dockerfile: file-service/Dockerfile
+    container_name: file-service
+    environment:
+      # External MinIO Connection
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://minio:9000}
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-nqluong1405}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-nqluong140504}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+      - appointment-microservices_default
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    environment:
+      # External Database Connection
+      - DB_URL_AUTH=${DB_URL_AUTH:-postgresql://localhost:5432/auth_db}
+      - DB_USERNAME_AUTH=${DB_USERNAME_AUTH:-auth_user}
+      - DB_PASSWORD_AUTH=${DB_PASSWORD_AUTH:-auth_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # JWT & Admin Config
+      - SECRET_KEY_JWT=${SECRET_KEY_JWT:-your-secret-key-here-change-in-production}
+      - ADMIN_USER_NAME=${ADMIN_USER_NAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - DEFAULT_ROLE_ID=${DEFAULT_ROLE_ID:-6e64fe22-a593-4c2e-9fad-9ae101a47e82}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+    volumes:
+      - auth-uploads:/app/uploads
+
+  # Notifications Service
+  notifications-service:
+    build:
+      context: .
+      dockerfile: notifications-service/Dockerfile
+    container_name: notifications-service
+    environment:
+      # External Database Connection
+      - DB_URL_NOTIFICATIONS=${DB_URL_NOTIFICATIONS:-postgresql://localhost:5437/notifications_db}
+      - DB_USERNAME_NOTIFICATIONS=${DB_USERNAME_NOTIFICATIONS:-notifications_user}
+      - DB_PASSWORD_NOTIFICATIONS=${DB_PASSWORD_NOTIFICATIONS:-notifications_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # Email Configuration
+      - PASS_MAIL=${PASS_MAIL:-your-gmail-app-password}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+
+  # User Profile Service
+  userprofile-service:
+    build:
+      context: .
+      dockerfile: userprofile-service/Dockerfile
+    container_name: userprofile-service
+    environment:
+      # External Database Connection
+      - DB_URL_PROFILE=${DB_URL_PROFILE:-postgresql://localhost:5433/userprofile_db}
+      - DB_USERNAME_PROFILE=${DB_USERNAME_PROFILE:-userprofile_user}
+      - DB_PASSWORD_PROFILE=${DB_PASSWORD_PROFILE:-userprofile_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # External Redis Connection
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-NguyenLuong1405}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+
+  # Scheduling Service
+  scheduling-service:
+    build:
+      context: .
+      dockerfile: scheduling-service/Dockerfile
+    container_name: scheduling-service
+    environment:
+      # External Database Connection
+      - DB_URL_SCHEDULING=${DB_URL_SCHEDULING:-postgresql://localhost:5435/scheduling_db}
+      - DB_USERNAME_SCHEDULING=${DB_USERNAME_SCHEDULING:-scheduling_user}
+      - DB_PASSWORD_SCHEDULING=${DB_PASSWORD_SCHEDULING:-scheduling_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # External Redis Connection
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-NguyenLuong1405}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+
+  # Appointment Service
+  appointment-service:
+    build:
+      context: .
+      dockerfile: appointment-service/Dockerfile
+    container_name: appointment-service
+    environment:
+      # External Database Connection
+      - DB_URL_APPOINTMENT=${DB_URL_APPOINTMENT:-postgresql://localhost:5434/appointment_db}
+      - DB_USERNAME_APPOINTMENT=${DB_USERNAME_APPOINTMENT:-appointment_user}
+      - DB_PASSWORD_APPOINTMENT=${DB_PASSWORD_APPOINTMENT:-appointment_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    container_name: payment-service
+    environment:
+      # External Database Connection
+      - DB_URL_PAYMENT=${DB_URL_PAYMENT:-postgresql://localhost:5436/payment_db}
+      - DB_USERNAME_PAYMENT=${DB_USERNAME_PAYMENT:-payment_user}
+      - DB_PASSWORD_PAYMENT=${DB_PASSWORD_PAYMENT:-payment_password}
+      # External Kafka Connection
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      # VNPay Configuration
+      - TMN_CODE=${TMN_CODE:-your-vnpay-tmn-code}
+      - PAY_URL=${PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      - SECRET_KEY=${SECRET_KEY:-your-vnpay-secret-key}
+      - RETURN_URL=${RETURN_URL:-http://localhost:8080/api/payments/vnpay-return}
+      - REFUND_URL=${REFUND_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      - QUERY_URL=${QUERY_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - db_network
+
+volumes:
+  auth-uploads:
+  broker-1-data:
+  broker-2-data:
+
+networks:
+  db_network:
+    external: true
+  appointment-microservices_default:
+    external: true

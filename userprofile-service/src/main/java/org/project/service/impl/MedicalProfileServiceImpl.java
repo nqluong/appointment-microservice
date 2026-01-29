@@ -6,6 +6,7 @@ import org.project.dto.PageResponse;
 import org.project.dto.response.DoctorResponse;
 import org.project.dto.response.MedicalProfileResponse;
 import org.project.exception.CustomException;
+import org.project.model.MedicalProfile;
 import org.project.repository.MedicalProfileRepository;
 import org.project.service.DoctorService;
 import org.project.service.MedicalProfileService;
@@ -30,7 +31,7 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
     @Transactional(readOnly = true)
     @Override
     public MedicalProfileResponse getMedicalProfileByUserId(UUID userId) {
-        MedicalProfileResponse profile = medicalProfileRepository.findByUserId(userId)
+        MedicalProfileResponse profile = medicalProfileRepository.findProfileByUserId(userId)
                 .orElseThrow(() -> new CustomException(
                         "Medical profile not found for user: " + userId));
 
@@ -40,14 +41,14 @@ public class MedicalProfileServiceImpl implements MedicalProfileService {
     @Transactional(readOnly = true)
     @Override
     public DoctorResponse validateDoctorForAppointment(UUID doctorId) {
-        MedicalProfileResponse profile = medicalProfileRepository.findByUserId(doctorId)
+        MedicalProfileResponse profile = medicalProfileRepository.findProfileByUserId(doctorId)
                 .orElseThrow(() -> new CustomException("Doctor not found: " + doctorId));
 
         // Chuyển đổi MedicalProfileResponse thành DoctorResponse
         return DoctorResponse.builder()
                 .userId(profile.getUserId())
                 .fullName(NameUtils.formatDoctorFullName(profile.getFirstName() + " " + profile.getLastName()))
-                .email(null) // Email không có trong MedicalProfileResponse, có thể cần lấy từ user service
+                .email(null)
                 .gender(profile.getGender() != null ? profile.getGender().toString() : null)
                 .phone(profile.getPhone())
                 .avatarUrl(profile.getUrlAvatar() != null ? profile.getUrlAvatar() : null)

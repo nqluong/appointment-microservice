@@ -1,6 +1,7 @@
 package org.project.dto.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -32,4 +33,5 @@ public class DoctorResponse {
     BigDecimal consultationFee;
     String specialtyName;
     Boolean approved;
+    LocalDateTime lastUpdate;
 }

@@ -142,4 +142,40 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("status") Status status,
             @Param("date") LocalDate date
     );
+
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE (:userId IS NULL OR a.patientUserId = :userId)
+        AND (:status IS NULL OR a.status = :status)
+        AND a.appointmentDate IS NOT NULL
+    """)
+    Page<Appointment> findAppointmentsByUserIdAndStatus(
+            @Param("userId") UUID userId,
+            @Param("status") Status status,
+            Pageable pageable);
+
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE a.doctorUserId = :doctorId
+        AND a.appointmentDate = :date
+        AND a.status IN ('PENDING', 'CONFIRMED', 'IN_PROGRESS')
+        ORDER BY a.startTime ASC
+    """)
+    List<Appointment> findByDoctorIdAndDateAndActiveStatus(
+            @Param("doctorId") UUID doctorId,
+            @Param("date") LocalDate date);
+
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE a.doctorUserId = :doctorId
+        AND a.appointmentDate = :date
+        AND a.status IN ('PENDING', 'CONFIRMED', 'IN_PROGRESS')
+        AND NOT (a.endTime <= :startTime OR a.startTime >= :endTime)
+        ORDER BY a.startTime ASC
+    """)
+    List<Appointment> findOverlappingAppointmentsByTimeRange(
+            @Param("doctorId") UUID doctorId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime);
 }

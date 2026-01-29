@@ -1,27 +1,41 @@
 package org.project.service.impl;
 
-import io.minio.*;
-import io.minio.http.Method;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.project.config.MinioConfig;
-import org.project.service.FileService;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.InputStream;
 import java.util.UUID;
 
+import org.project.config.MinioConfig;
+import org.project.service.FileService;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import io.minio.http.Method;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FileServiceImpl implements FileService {
     MinioClient minioClient;
-
+    MinioClient publicMinioClient;
     MinioConfig minioConfig;
+
+    public FileServiceImpl(MinioClient minioClient, 
+                          @Qualifier("publicMinioClient") MinioClient publicMinioClient,
+                          MinioConfig minioConfig) {
+        this.minioClient = minioClient;
+        this.publicMinioClient = publicMinioClient;
+        this.minioConfig = minioConfig;
+    }
 
     @Override
     public String uploadFile(MultipartFile file) throws Exception {
@@ -66,7 +80,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public String getFileUrl(String fileName) {
         try {
-            return minioClient.getPresignedObjectUrl(
+            String presignedUrl =  publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(minioConfig.getBucketName())
@@ -74,6 +88,8 @@ public class FileServiceImpl implements FileService {
                             .expiry(60 * 60 * 24)
                             .build()
             );
+            log.info("Url: {}", presignedUrl);
+            return  presignedUrl;
         } catch (Exception e) {
             log.error("Lỗi tạo URL ký trước cho tệp: {}", fileName, e);
             return null;

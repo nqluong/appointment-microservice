@@ -1,6 +1,7 @@
 package org.project.repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public interface DoctorProjection {
@@ -13,4 +14,5 @@ public interface DoctorProjection {
     Integer getYearsOfExperience();
     BigDecimal getConsultationFee();
     String getSpecialtyName();
+    LocalDateTime getLastUpdate();
 }

@@ -18,11 +18,9 @@ import java.time.LocalDate;
 public class ProfileUpdateRequest {
 
     @Size(max = 100, message = "First name cannot exceed 100 characters")
-    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "First name can only contain letters and spaces")
     String firstName;
 
     @Size(max = 100, message = "Last name cannot exceed 100 characters")
-    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Last name can only contain letters and spaces")
     String lastName;
 
     @JsonFormat(pattern = "yyyy-MM-dd")

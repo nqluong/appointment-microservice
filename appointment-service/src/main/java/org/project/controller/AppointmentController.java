@@ -16,7 +16,6 @@ import org.project.dto.response.AppointmentDtoResponse;
 import org.project.dto.response.AppointmentResponse;
 import org.project.enums.Status;
 import org.project.service.AppointmentService;
-import org.project.producer.AppointmentEventProducer;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -48,7 +47,13 @@ public class AppointmentController {
         log.info("Thông tin get user appointments: userId={}, statuses={}, page={}, size={}, sortDirection={}, sortBy={}",
                 userId, statuses, page, size, sortDirection, sortBy);
         securityUtils.validateUserAccess(userId);
-                Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
+
+        List<String> allowedSortFields = List.of("appointmentDate", "startTime", "endTime", "createdAt", "updatedAt", "status");
+        if (!allowedSortFields.contains(sortBy)) {
+            sortBy = "appointmentDate";
+        }
+
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
 
@@ -82,6 +87,11 @@ public class AppointmentController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
             @RequestParam(defaultValue = "DESC") String sortDirection,
             @RequestParam(defaultValue = "appointmentDate") String sortBy) {
+
+        List<String> allowedSortFields = List.of("appointmentDate", "startTime", "endTime", "createdAt", "updatedAt", "status");
+        if (!allowedSortFields.contains(sortBy)) {
+            sortBy = "appointmentDate";
+        }
 
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
                 ? Sort.Direction.ASC
@@ -134,6 +144,11 @@ public class AppointmentController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
             @RequestParam(defaultValue = "DESC") String sortDirection,
             @RequestParam(defaultValue = "appointmentDate") String sortBy) {
+
+        List<String> allowedSortFields = List.of("appointmentDate", "startTime", "endTime", "createdAt", "updatedAt", "status");
+        if (!allowedSortFields.contains(sortBy)) {
+            sortBy = "appointmentDate";
+        }
 
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection)
                 ? Sort.Direction.ASC
