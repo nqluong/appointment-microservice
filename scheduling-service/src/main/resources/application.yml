@@ -54,6 +54,8 @@ cache:
   availability:
     ttl-days: 1
     days-to-cache: 14
+    refresh-rate-ms: ${CACHE_REFRESH_RATE_MS:60000}  # 1 phút mặc định
+    initial-delay-ms: ${CACHE_INITIAL_DELAY_MS:60000}  # 1 phút mặc định
 
 server:
   port: 0

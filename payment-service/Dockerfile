@@ -10,6 +10,12 @@ RUN mvn clean package -pl payment-service -am -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Set timezone to Asia/Ho_Chi_Minh (UTC+7)
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime && \
+    echo "Asia/Ho_Chi_Minh" > /etc/timezone && \
+    apk del tzdata
+
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 

@@ -36,11 +36,7 @@ public class AsyncConfig {
         return executor;
     }
 
-    /**
-     * Thread pool for cache processing workers
-     * These threads will continuously poll Redis queue for doctor IDs
-     * and cache their availability slots
-     */
+
     @Bean(name = "cacheProcessExecutor")
     public Executor cacheProcessExecutor(RedisCacheService redisCacheService,
                                           DoctorSlotRedisCache doctorSlotRedisCache,

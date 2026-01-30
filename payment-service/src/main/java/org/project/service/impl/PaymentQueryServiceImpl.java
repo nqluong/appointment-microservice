@@ -156,6 +156,17 @@ public class PaymentQueryServiceImpl implements PaymentQueryService {
         if (!queryResult.isSuccess()) {
             log.warn("Truy vấn giao dịch thất bại cho mã giao dịch: {}, thông báo: {}",
                     payment.getTransactionId(), queryResult.getMessage());
+
+            if (PaymentStatus.PROCESSING.equals(payment.getPaymentStatus())
+                    && queryResult.getStatus() != null) {
+
+                log.info("Cập nhật trạng thái giao dịch {} từ PROCESSING sang {} do vnp_ResponseCode != 00",
+                        payment.getTransactionId(), queryResult.getStatus());
+
+                updatePaymentFromQueryResult(payment, queryResult, queryResult.getStatus());
+                handleStatusChange(payment, queryResult.getStatus());
+            }
+
             return paymentMapper.toResponse(payment);
         }
 
@@ -163,8 +174,16 @@ public class PaymentQueryServiceImpl implements PaymentQueryService {
         boolean statusChanged = !payment.getPaymentStatus().equals(newStatus);
 
         if (statusChanged) {
+            log.info("Phát hiện thay đổi trạng thái cho giao dịch {}: {} -> {}, transactionStatus: {}",
+                    payment.getTransactionId(), payment.getPaymentStatus(), newStatus,
+                    queryResult.getResponseCode());
+
             updatePaymentFromQueryResult(payment, queryResult, newStatus);
             handleStatusChange(payment, newStatus);
+        } else {
+            log.debug("Trạng thái giao dịch {} không thay đổi: {}, transactionStatus: {}",
+                    payment.getTransactionId(), payment.getPaymentStatus(),
+                    queryResult.getResponseCode());
         }
 
         return paymentMapper.toResponse(payment);

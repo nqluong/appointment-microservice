@@ -241,18 +241,32 @@ public class VNPayGateway implements PaymentGateway {
             String amountStr = (String) response.get("vnp_Amount");
             String payDate = (String) response.get("vnp_PayDate");
 
+            log.info("VNPay query response for transaction {}: vnp_ResponseCode={}, vnp_TransactionStatus={}",
+                    transactionId, responseCode, transactionStatus);
+
+            // vnp_ResponseCode != "00" nghĩa là API query không thành công
+            // (có thể do không tìm thấy giao dịch, lỗi hệ thống, v.v.)
             if (!"00".equals(responseCode)) {
+                log.warn("VNPay query API failed for transaction {}: responseCode={}, message={}",
+                        transactionId, responseCode, getResponseMessage(responseCode));
+
                 return PaymentQueryResult.builder()
                         .success(false)
                         .status(PaymentStatus.FAILED)
                         .transactionId(transactionId)
-                        .message("Query failed with response code: " + responseCode)
+                        .responseCode(responseCode)
+                        .message("Query API failed: " + getResponseMessage(responseCode))
                         .rawResponse(responseBody)
                         .build();
             }
 
+            // vnp_ResponseCode = "00" nghĩa là API query thành công
+            // Bây giờ kiểm tra vnp_TransactionStatus để biết trạng thái giao dịch
             PaymentStatus status = determinePaymentStatus(transactionStatus);
-            log.info("VNPay query response for transaction: {}, status: {}",transactionId, status);
+
+            log.info("VNPay query success for transaction {}: transactionStatus={}, mappedStatus={}",
+                    transactionId, transactionStatus, status);
+
             BigDecimal amount = amountStr != null ?
                     new BigDecimal(amountStr).divide(BigDecimal.valueOf(100)) : null;
 
@@ -288,9 +302,21 @@ public class VNPayGateway implements PaymentGateway {
         }
 
         switch (transactionStatus) {
-            case "00": return PaymentStatus.COMPLETED;
-            case "01": return PaymentStatus.PENDING;
-            default: return PaymentStatus.FAILED;
+            case "00": // Giao dịch thành công
+                return PaymentStatus.COMPLETED;
+            case "01": // Giao dịch chưa hoàn tất
+                return PaymentStatus.PENDING;
+            case "02": // Giao dịch bị lỗi
+            case "04": // Giao dịch đảo (Khách hàng đã bị trừ tiền tại Ngân hàng nhưng GD chưa thành công ở VNPAY)
+            case "07": // Giao dịch bị nghi ngờ
+            case "09": // GD Hoàn trả bị từ chối
+                return PaymentStatus.FAILED;
+            case "05": // VNPAY đang xử lý giao dịch này (GD hoàn tiền)
+            case "06": // VNPAY đã gửi yêu cầu hoàn tiền sang Ngân hàng
+                return PaymentStatus.PROCESSING;
+            default:
+                log.warn("Unknown transaction status: {}, treating as FAILED", transactionStatus);
+                return PaymentStatus.FAILED;
         }
     }
 
